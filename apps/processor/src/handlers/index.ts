@@ -1,4 +1,5 @@
 import type { S3Client } from '@aws-sdk/client-s3';
+import type { Database } from '@shoebox/db';
 import type { JobPayload, ProcessingJobType } from '@shoebox/shared';
 import type { ProcessorConfig } from '../config';
 import { imageDerivatives } from './image';
@@ -7,6 +8,7 @@ import { videoDerivatives } from './video';
 
 export type HandlerContext = {
 	s3: S3Client;
+	db: Database;
 	config: ProcessorConfig;
 	jobId: string;
 };

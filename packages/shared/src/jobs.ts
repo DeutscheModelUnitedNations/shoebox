@@ -16,7 +16,9 @@ const mediaSource = z.object({
 	mediaId: z.string(),
 	/** Bucket and key of the uploaded original. */
 	bucket: z.string(),
-	key: z.string()
+	key: z.string(),
+	/** Team-private media keeps every derivative in the private bucket. */
+	public: z.boolean()
 });
 
 export const jobPayloadSchemas = {

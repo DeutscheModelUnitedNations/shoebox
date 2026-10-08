@@ -2,6 +2,7 @@ import { encode } from 'blurhash';
 import exifr from 'exifr';
 import sharp, { type Sharp } from 'sharp';
 import { imageVariants, storageKeys, type DerivativeResult } from '@shoebox/shared';
+import { markMediaReady } from '@shoebox/db';
 import { downloadToBuffer, upload } from '../s3io';
 import { applyWatermark } from '../watermark';
 import type { HandlerContext, JobHandler } from './index';
@@ -53,8 +54,11 @@ function encodeWebp(image: Sharp) {
 export async function renderVariants(
 	ctx: HandlerContext,
 	image: Sharp,
-	mediaId: string
+	mediaId: string,
+	isPublic: boolean
 ): Promise<DerivativeResult[]> {
+	// Team-private media never touches the public bucket
+	const shownBucket = isPublic ? ctx.config.S3_BUCKET_DERIVATIVES : ctx.config.S3_BUCKET_ORIGINALS;
 	const results: DerivativeResult[] = [];
 	const store = async (
 		bucket: string,
@@ -85,9 +89,9 @@ export async function renderVariants(
 		const publicKey = storageKeys.derivative(mediaId, variant.name, 'webp');
 		if (!variant.watermark) {
 			const clean = await encodeWebp(resized);
-			await store(ctx.config.S3_BUCKET_DERIVATIVES, publicKey, variant.name, clean, {
+			await store(shownBucket, publicKey, variant.name, clean, {
 				watermarked: false,
-				public: true
+				public: isPublic
 			});
 			continue;
 		}
@@ -95,9 +99,9 @@ export async function renderVariants(
 			encodeWebp(resized.clone()),
 			applyWatermark(resized.clone()).then(encodeWebp)
 		]);
-		await store(ctx.config.S3_BUCKET_DERIVATIVES, publicKey, variant.name, marked, {
+		await store(shownBucket, publicKey, variant.name, marked, {
 			watermarked: true,
-			public: true
+			public: isPublic
 		});
 		await store(
 			ctx.config.S3_BUCKET_ORIGINALS,
@@ -120,10 +124,10 @@ export const imageDerivatives: JobHandler<'IMAGE_DERIVATIVES'> = async (ctx, pay
 	const [{ exif, gps }, blurhash, derivatives] = await Promise.all([
 		extractMetadata(original),
 		blurhashOf(image),
-		renderVariants(ctx, image, payload.mediaId)
+		renderVariants(ctx, image, payload.mediaId, payload.public)
 	]);
 
-	return {
+	const result = {
 		width: oriented.width,
 		height: oriented.height,
 		format: meta.format,
@@ -133,4 +137,6 @@ export const imageDerivatives: JobHandler<'IMAGE_DERIVATIVES'> = async (ctx, pay
 		gps,
 		derivatives
 	};
+	await markMediaReady(ctx.db, payload.mediaId, result);
+	return result;
 };

@@ -1,141 +1,38 @@
 /**
- * Read side of the gallery for server load functions. Backed by demo data for now, the
- * signatures are what the database implementation will keep.
+ * Read side of the gallery for server load functions: loads from Postgres (load.ts) and
+ * builds the view models (tree.ts).
  */
-import type {
-	CategoryNode,
-	CategoryPage,
-	EventDetail,
-	EventSummary,
-	Photo,
-	SeriesSummary
-} from '$lib/gallery/types';
-import { demoSeries, type DemoCategory, type DemoEvent, type DemoSeries } from './demo';
+import type { CategoryPage, EventDetail, SeriesSummary } from '$lib/gallery/types';
+import { loadSeries } from './load';
+import { buildCategoryPage, buildEvent, buildSeries, buildSeriesList, type Viewer } from './tree';
 
-export interface Viewer {
-	/** Team members also see team-private photos */
-	isTeam: boolean;
+export type { Viewer };
+
+export async function listSeries(viewer: Viewer): Promise<SeriesSummary[]> {
+	return buildSeriesList(await loadSeries(viewer), viewer);
 }
 
-function canSee(photo: Photo | undefined, viewer: Viewer): photo is Photo {
-	return !!photo && (viewer.isTeam || photo.visibility === 'PUBLIC');
+export async function getSeries(slug: string, viewer: Viewer): Promise<SeriesSummary | undefined> {
+	return buildSeries(await loadSeries(viewer, { series: slug }), slug, viewer);
 }
 
-function photosOf(category: DemoCategory, viewer: Viewer): Photo[] {
-	return [
-		...category.photos.filter((p) => canSee(p, viewer)),
-		...category.children.flatMap((c) => photosOf(c, viewer))
-	];
-}
-
-/** Drops categories without a single visible photo. */
-function toNode(category: DemoCategory, viewer: Viewer): CategoryNode | null {
-	const photoCount = photosOf(category, viewer).length;
-	if (photoCount === 0) return null;
-	return {
-		slug: category.slug,
-		name: category.name,
-		photoCount,
-		cover: canSee(category.cover, viewer) ? category.cover : undefined,
-		children: category.children.map((c) => toNode(c, viewer)).filter((c) => c !== null)
-	};
-}
-
-function summarize(series: DemoSeries, event: DemoEvent, viewer: Viewer): EventSummary {
-	const categories = event.categories.map((c) => toNode(c, viewer)).filter((c) => c !== null);
-	return {
-		seriesSlug: series.slug,
-		slug: event.slug,
-		name: event.name,
-		edition: event.edition,
-		dates: event.dates,
-		photoCount: categories.reduce((sum, c) => sum + c.photoCount, 0),
-		categoryCount: categories.length,
-		cover: canSee(event.cover, viewer) ? event.cover : undefined
-	};
-}
-
-function seriesSummary(series: DemoSeries, viewer: Viewer): SeriesSummary {
-	return {
-		slug: series.slug,
-		name: series.name,
-		shortName: series.shortName,
-		region: series.region,
-		kind: series.kind,
-		events: series.events.map((e) => summarize(series, e, viewer))
-	};
-}
-
-function findEvent(seriesSlug: string, eventSlug: string) {
-	const series = demoSeries.find((s) => s.slug === seriesSlug);
-	const event = series?.events.find((e) => e.slug === eventSlug);
-	return series && event ? { series, event } : undefined;
-}
-
-export function listSeries(viewer: Viewer): SeriesSummary[] {
-	return demoSeries.map((s) => seriesSummary(s, viewer));
-}
-
-export function getSeries(slug: string, viewer: Viewer): SeriesSummary | undefined {
-	const series = demoSeries.find((s) => s.slug === slug);
-	return series && seriesSummary(series, viewer);
-}
-
-export function getEvent(
-	seriesSlug: string,
-	eventSlug: string,
+/** The event plus the series' short name for the breadcrumb, from a single load. */
+export async function getEvent(
+	series: string,
+	event: string,
 	viewer: Viewer
-): EventDetail | undefined {
-	const found = findEvent(seriesSlug, eventSlug);
-	if (!found) return undefined;
-	const { series, event } = found;
-	return {
-		...summarize(series, event, viewer),
-		subtitle: event.subtitle,
-		location: event.location,
-		description: event.description,
-		photographers: event.photographers,
-		rights: event.rights,
-		hero: canSee(event.hero, viewer) ? event.hero : undefined,
-		highlights: event.highlights.filter((p) => canSee(p, viewer)),
-		categories: event.categories.map((c) => toNode(c, viewer)).filter((c) => c !== null)
-	};
+): Promise<{ event: EventDetail; seriesShortName: string } | undefined> {
+	const all = await loadSeries(viewer, { series, event });
+	const detail = buildEvent(all, series, event, viewer);
+	return detail && { event: detail, seriesShortName: all[0].shortName };
 }
 
-/** The categories along `path`, root first, or undefined if a slug does not exist. */
-function walk(categories: DemoCategory[], path: string[]): DemoCategory[] | undefined {
-	if (path.length === 0) return undefined;
-	const trail: DemoCategory[] = [];
-	let level = categories;
-	for (const slug of path) {
-		const next = level.find((c) => c.slug === slug);
-		if (!next) return undefined;
-		trail.push(next);
-		level = next.children;
-	}
-	return trail;
-}
-
-export function getCategoryPage(
-	seriesSlug: string,
-	eventSlug: string,
+export async function getCategoryPage(
+	series: string,
+	event: string,
 	path: string[],
 	viewer: Viewer
-): CategoryPage | undefined {
-	const found = findEvent(seriesSlug, eventSlug);
-	if (!found) return undefined;
-
-	const raw = walk(found.event.categories, path);
-	const trail = raw?.map((c) => toNode(c, viewer));
-	if (!raw || !trail || trail.some((c) => c === null)) return undefined;
-	const nodes = trail as CategoryNode[];
-
-	return {
-		event: summarize(found.series, found.event, viewer),
-		root: nodes[0],
-		trail: nodes,
-		photos: photosOf(raw[raw.length - 1], viewer),
-		photographers: found.event.photographers,
-		rights: found.event.rights
-	};
+): Promise<CategoryPage | undefined> {
+	const all = await loadSeries(viewer, { series, event });
+	return buildCategoryPage(all, series, event, path, viewer);
 }

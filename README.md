@@ -2,7 +2,7 @@
 
 Shoebox is the photo and video gallery for Model United Nations conferences, built by the German non-profit [Deutsche Model United Nations (DMUN) e.V.](https://dmun.de). Team members and photographers upload media into conference albums, the public browses what is public, and the team sees the rest.
 
-> The gallery pages are built and run on demo data (`apps/server/src/lib/server/gallery/demo.ts`) until conferences, categories and media move into the database.
+> Gallery pages read conferences, categories and media from Postgres and serve images from S3. Uploads and admin tooling are next.
 
 ## Architecture
 
@@ -77,7 +77,7 @@ bun run dev
 | `docker`    | Postgres on `localhost:5434` and Garage (S3 `:3900`, web `:3902`, admin `:3903`)        |
 | `s3`        | one-shot bootstrap of buckets, website access and CORS, then exits                      |
 
-Run `bun run db:migrate` once after the containers are up (or `bun run db:nuke` for a clean slate). Log in at <https://localhost:5173/login>, the mock provider offers one button per user in `apps/server/oidc-mock.yaml`.
+Run `bun run db:migrate` once after the containers are up (or `bun run db:nuke` for a clean slate), then `bun run db:seed` for the demo gallery. The seed needs the demo photos in `scripts/dev/demo-photos/`, which are not in the repository. Log in at <https://localhost:5173/login>, the mock provider offers one button per user in `apps/server/oidc-mock.yaml`.
 
 Derivatives are served from Garage's web endpoint at `http://shoebox-derivatives.web.localhost:3902/<key>`. Browsers resolve `*.localhost` to the loopback address, command line tools may not.
 
@@ -101,6 +101,7 @@ Derivatives are served from Garage's web endpoint at `http://shoebox-derivatives
 | `bun run db:migrate`        | Apply migrations                                          |
 | `bun run db:studio`         | Drizzle Studio                                            |
 | `bun run db:nuke`           | Drop the dev volumes, recreate the containers and migrate |
+| `bun run db:seed`           | Demo gallery: rows, originals in S3, processing jobs      |
 | `bun run build`             | Production build of the server                            |
 
 ### GraphQL client

@@ -16,8 +16,10 @@
 	const chosen = $derived(
 		available.find((d) => d.variant === selected) ?? available.find((d) => d.variant === 'large')
 	);
-	// The watermark switch only reaches a download endpoint once it exists
-	const href = $derived(chosen && `${chosen.href}${isTeam && noWatermark ? '?watermark=0' : ''}`);
+	// Team members may skip the watermark on medium and large, originals never carry one
+	const href = $derived(
+		chosen && `${chosen.href}${isTeam && noWatermark && !chosen.teamOnly ? '&clean=1' : ''}`
+	);
 
 	const variantLabels = {
 		medium: m.variantMedium,

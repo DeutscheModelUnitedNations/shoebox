@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import sharp from 'sharp';
 import { downloadToFile } from '../s3io';
+import { markMediaReady } from '@shoebox/db';
 import { blurhashOf, renderVariants } from './image';
 import type { HandlerContext, JobHandler } from './index';
 
@@ -81,9 +82,11 @@ export const videoDerivatives: JobHandler<'VIDEO_DERIVATIVES'> = async (ctx, pay
 		const poster = sharp(await posterFrame(ctx, file, seek));
 		const [blurhash, derivatives] = await Promise.all([
 			blurhashOf(poster),
-			renderVariants(ctx, poster, payload.mediaId)
+			renderVariants(ctx, poster, payload.mediaId, payload.public)
 		]);
-		return { ...info, blurhash, derivatives };
+		const result = { ...info, blurhash, derivatives };
+		await markMediaReady(ctx.db, payload.mediaId, result);
+		return result;
 	} finally {
 		await rm(dir, { recursive: true, force: true });
 	}

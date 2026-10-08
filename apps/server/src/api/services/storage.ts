@@ -20,9 +20,22 @@ export function presignUpload(key: string, contentType: string, expiresIn = 15 *
 	);
 }
 
-/** Short-lived GET for originals and anything team-private. */
-export function presignDownload(bucket: string, key: string, expiresIn = 5 * 60) {
-	return getSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn });
+/** Short-lived GET for originals and anything team-private. A filename makes it a download. */
+export function presignDownload(
+	bucket: string,
+	key: string,
+	expiresIn = 5 * 60,
+	filename?: string
+) {
+	return getSignedUrl(
+		s3,
+		new GetObjectCommand({
+			Bucket: bucket,
+			Key: key,
+			ResponseContentDisposition: filename ? `attachment; filename="${filename}"` : undefined
+		}),
+		{ expiresIn }
+	);
 }
 
 /** Derivatives are public and served without signing, from a CDN or the bucket website. */

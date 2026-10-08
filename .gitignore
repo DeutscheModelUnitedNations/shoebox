@@ -27,5 +27,5 @@ vite.config.ts.timestamp-*
 .claude
 .lazyi18n
 
-# Demo photos from the design (identifiable people, never published), see apps/server/src/lib/server/gallery/demo.ts
-/apps/server/static/demo
+# Demo photos from the design (identifiable people, never published), see scripts/dev/seed-demo.ts
+/scripts/dev/demo-photos

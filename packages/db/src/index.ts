@@ -18,3 +18,4 @@ export function createMockDb(): Database {
 
 export { schema, relations };
 export * from './queue';
+export * from './media';

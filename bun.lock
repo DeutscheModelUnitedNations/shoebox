@@ -5,8 +5,11 @@
     "": {
       "name": "shoebox",
       "devDependencies": {
+        "@aws-sdk/client-s3": "^3.1147.0",
         "@eslint/compat": "^2.1.0",
         "@eslint/js": "^10.0.1",
+        "@shoebox/db": "workspace:*",
+        "@shoebox/shared": "workspace:*",
         "@types/node": "^24.0.0",
         "concurrently": "^10.0.5",
         "eslint": "^10.9.0",

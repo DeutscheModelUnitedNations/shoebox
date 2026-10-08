@@ -3,6 +3,7 @@ import {
 	claimJob,
 	completeJob,
 	failJob,
+	markMediaFailed,
 	recoverStaleJobs,
 	type Database,
 	type ProcessingJobRow
@@ -88,21 +89,39 @@ export class Worker {
 			const type = job.type as ProcessingJobType;
 			const handler = handlers[type] as JobHandler<ProcessingJobType>;
 			const payload = jobPayloadSchemas[type].parse(job.payload);
-			const result = await handler({ s3: this.s3, config: this.config, jobId: job.id }, payload);
+			const result = await handler(
+				{ s3: this.s3, db: this.db, config: this.config, jobId: job.id },
+				payload
+			);
 			await completeJob(this.db, job.id, result);
 			log('info', 'job succeeded', { id: job.id, type: job.type, ms: Date.now() - started });
 		} catch (error) {
-			const exhausted = await failJob(this.db, job, error).catch((e) => {
-				log('error', 'could not record failure', { id: job.id, error: String(e) });
-				return true;
-			});
-			log(exhausted ? 'error' : 'warn', exhausted ? 'job failed' : 'job will retry', {
-				id: job.id,
-				type: job.type,
-				attempt: job.attempts,
-				error: error instanceof Error ? error.message : String(error)
-			});
+			await this.recordFailure(job, error);
 		}
+	}
+
+	// fallow-ignore-next-line complexity -- retry bookkeeping, covered by queue.test.ts and runs
+	private async recordFailure(job: ProcessingJobRow, error: unknown) {
+		const exhausted = await failJob(this.db, job, error).catch((e) => {
+			log('error', 'could not record failure', { id: job.id, error: String(e) });
+			return true;
+		});
+		if (exhausted) await this.markFailed(job);
+		log(exhausted ? 'error' : 'warn', exhausted ? 'job failed' : 'job will retry', {
+			id: job.id,
+			type: job.type,
+			attempt: job.attempts,
+			error: error instanceof Error ? error.message : String(error)
+		});
+	}
+
+	/** Media whose processing gave up must not stay PENDING forever. */
+	private async markFailed(job: ProcessingJobRow) {
+		const mediaId = (job.payload as { mediaId?: unknown }).mediaId;
+		if (typeof mediaId !== 'string') return;
+		await markMediaFailed(this.db, mediaId).catch((error) =>
+			log('error', 'could not mark media failed', { mediaId, error: String(error) })
+		);
 	}
 
 	private sleep(ms: number) {

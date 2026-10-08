@@ -43,6 +43,7 @@ bun run db:generate      # drizzle-kit generate (packages/db/drizzle/<timestamp>
 bun run db:migrate
 bun run db:studio
 bun run db:nuke          # drop dev volumes, recreate, migrate
+bun run db:seed          # demo gallery: rows, originals in S3, processing jobs
 bun run build            # production build of the server
 ```
 
@@ -60,18 +61,20 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 - `lib/config/{public,private}.ts`: Zod-validated env wrappers. Read config through them, never from `$env` or `process.env` directly.
 - `lib/api/client.ts` exports `urqlClient` for the generated client. No normalized cache, no offline persistence (deliberate, unlike chase).
 - `routes/`: the gallery from the "Galerie v2" design. `/` landing, `/usage` usage notes, `/[series]` all editions of a conference series, `/[series]/[event]` conference page, `/[series]/[event]/[...category]` photo grid with the category sidebar. The lightbox is an overlay driven by `?photo=<id>`, so every photo has a shareable URL. `/login` and `/logout` are server-only redirects, `/api/graphql` is Yoga, `/api/health` is JSON.
-- `lib/server/gallery/`: the read side the load functions call (`listSeries`, `getSeries`, `getEvent`, `getCategoryPage`), filtered by `viewerOf(locals)` so guests never receive team-private photos. It serves `demo.ts` until the domain tables exist; swap the implementation, keep the signatures. View models live in `lib/gallery/types.ts`.
+- `lib/server/gallery/`: the read side the load functions call (`listSeries`, `getSeries`, `getEvent`, `getCategoryPage`). `load.ts` queries Postgres for READY media the viewer may see (`viewerOf(locals)`, guests never receive team-private rows) and turns derivatives into URLs: public ones from `PUBLIC_MEDIA_BASE_URL`, private ones presigned. `tree.ts` builds the view models (`lib/gallery/types.ts`) and is unit tested.
+- `routes/api/media/[id]/download`: redirects to a presigned GET with `Content-Disposition: attachment`. Guests get the watermarked `medium`/`large`, team members also `original` and `clean=1` (watermark-free copies).
 - `lib/components/`: `SiteHeader`, `SiteFooter`, `Logo` (DMUN CDN artwork, light and dark), `AccentStripe`, `LeafWatermark`, `EventCard`, `CategoryGrid`, `PhotoMasonry`, `Lightbox`, `DownloadPanel`, `CopyLinkButton`.
 
 ### Processor (`apps/processor/src`)
 
 - `index.ts` wires config, db, S3, the `LISTEN` connection, a health server (`/healthz`) and graceful shutdown.
 - `worker.ts` claims jobs up to `PROCESSOR_CONCURRENCY`, sleeps until a `NOTIFY` or the poll interval, recovers stale `RUNNING` jobs.
-- `handlers/`: one handler per job type (`PING`, `IMAGE_DERIVATIVES`, `VIDEO_DERIVATIVES`). Payloads are validated with the Zod schemas from `@shoebox/shared`. Results land in `processing_job.result`.
+- `handlers/`: one handler per job type (`PING`, `IMAGE_DERIVATIVES`, `VIDEO_DERIVATIVES`). Payloads are validated with the Zod schemas from `@shoebox/shared`. Results land in `processing_job.result` and, for media, on the `media` row (`markMediaReady`). Payloads with `public: false` (team-private media) keep every derivative in the private bucket. Media whose job exhausts its retries is marked FAILED.
 
 ### Database (`packages/db`)
 
-- `src/schema.ts` is the source of truth. Only `user` and `processing_job` exist yet; domain tables (conference, album, media, conference membership) come with the design.
+- `src/schema.ts` is the source of truth: `user`, `processing_job`, and the gallery domain `series` › `event` › `category` (self-referencing tree) › `media`. Media carries `visibility` (PUBLIC/TEAM), `status` (PENDING/READY/FAILED), `highlight` and the processor's `derivatives`. Per-conference editor rights are not modelled yet.
+- `src/media.ts`: `markMediaReady`/`markMediaFailed`, called by the processor.
 - `src/queue.ts`: `enqueueJob`, `claimJob` (`FOR UPDATE SKIP LOCKED`), `completeJob`, `failJob` (exponential backoff), `recoverStaleJobs`, `queueStats`. `src/listen.ts` holds the dedicated `LISTEN` connection.
 - Migrations are generated into `drizzle/` and applied on server start (Dockerfile `CMD`).
 
@@ -82,7 +85,7 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 - **i18n**: `apps/server/messages/{en,de}.json`, used as `m.key()` from `$lib/paraglide/messages`. Add English first.
 - **Icons**: `phosphor-svelte`, import per icon from `phosphor-svelte/lib/<Name>Icon`, weight `duotone` by default.
 - **Styling**: Tailwind v4 + DaisyUI (themes off, DMUN themes from the corporate identity package), `data-theme` light/dark. Use DaisyUI components (`btn`, `badge`, `menu`, `breadcrumbs`, `modal`, `join`, `radio`, …) and theme colours (`primary` headings and links, `neutral` for dark surfaces, `base-200` for text boxes, `accent` only for the Akzentstreifen), Tailwind utilities for everything else. No custom CSS tokens. Flat by rule: no shadows on cards, no rounding except the Akzentstreifen and DaisyUI's own controls.
-- **Demo photos**: `apps/server/static/demo/` holds the design's photos, gitignored because they show identifiable people. Without them the demo pages show broken images.
+- **Demo data**: `bun run db:seed` (`--force` to replace) creates the design's series, events and categories, uploads the photos from `scripts/dev/demo-photos/` as originals and queues them for the processor. That folder is gitignored because the photos show identifiable people.
 - **Storage keys**: decided in `storageKeys` (`@shoebox/shared`), nowhere else.
 - **Jobs**: new job types are added to `processingJobTypes` + `jobPayloadSchemas` in `@shoebox/shared`, then to `handlers/index.ts` in the processor, then a migration for the enum.
 - Prose in docs: no semicolons or em dashes.

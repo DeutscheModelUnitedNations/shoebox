@@ -32,11 +32,15 @@
 		"db:migrate": "cd packages/db && bun --env-file=../../.env run migrate",
 		"db:push": "cd packages/db && bun --env-file=../../.env run push",
 		"db:studio": "cd packages/db && bun --env-file=../../.env run studio",
+		"db:seed": "bun --env-file=.env scripts/dev/seed-demo.ts",
 		"db:nuke": "docker compose -f ./dev.docker-compose.yml down -v && docker compose -f ./dev.docker-compose.yml up -d --wait && bun run db:migrate",
 		"prepare": "cd apps/server && bun run prepare && cd ../.. && lefthook install || echo ''",
 		"i18n:compile": "cd apps/server && bun run i18n:compile"
 	},
 	"devDependencies": {
+		"@aws-sdk/client-s3": "^3.1147.0",
+		"@shoebox/db": "workspace:*",
+		"@shoebox/shared": "workspace:*",
 		"@eslint/compat": "^2.1.0",
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^24.0.0",
