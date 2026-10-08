@@ -26,3 +26,6 @@ vite.config.ts.timestamp-*
 # Local tooling
 .claude
 .lazyi18n
+
+# Demo photos from the design (identifiable people, never published), see apps/server/src/lib/server/gallery/demo.ts
+/apps/server/static/demo

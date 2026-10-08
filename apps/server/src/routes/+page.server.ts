@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
-import { getHealth } from '$api/services/health';
+import { listSeries } from '$lib/server/gallery';
+import { viewerOf } from '$lib/server/gallery/viewer';
 
-export const load: PageServerLoad = async () => {
-	return { health: await getHealth() };
+export const load: PageServerLoad = ({ locals }) => {
+	return { series: listSeries(viewerOf(locals)) };
 };

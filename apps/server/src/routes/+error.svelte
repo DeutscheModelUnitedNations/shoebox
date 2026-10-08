@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import AccentStripe from '$lib/components/AccentStripe.svelte';
 	import { m } from '$lib/paraglide/messages';
 </script>
 
-<main class="flex min-h-screen items-center justify-center p-6">
-	<div class="card bg-base-100 w-full max-w-md shadow-xl">
-		<div class="card-body items-center text-center">
-			<h1 class="text-primary text-6xl font-bold">{page.status}</h1>
-			<p class="text-base-content/70">{page.error?.message}</p>
-			<a class="btn btn-primary mt-4" href={resolve('/')}>{m.appName()}</a>
-		</div>
+<section class="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-24 lg:px-12">
+	<AccentStripe class="w-30" />
+	<h1 class="text-6xl leading-none font-extralight lg:text-7xl">
+		<span class="font-bold">{page.status}</span>
+	</h1>
+	<p class="text-lg">{page.error?.message}</p>
+	<div>
+		<a class="btn btn-primary" href={resolve('/')}>{m.backToGallery()}</a>
 	</div>
-</main>
+</section>

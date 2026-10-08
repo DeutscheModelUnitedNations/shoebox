@@ -2,7 +2,7 @@
 
 Shoebox is the photo and video gallery for Model United Nations conferences, built by the German non-profit [Deutsche Model United Nations (DMUN) e.V.](https://dmun.de). Team members and photographers upload media into conference albums, the public browses what is public, and the team sees the rest.
 
-> This repository is the project backbone: tooling, data layer, authentication, storage, the processing pipeline and CI are in place. Gallery pages follow the design.
+> The gallery pages are built and run on demo data (`apps/server/src/lib/server/gallery/demo.ts`) until conferences, categories and media move into the database.
 
 ## Architecture
 

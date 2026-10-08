@@ -56,10 +56,12 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 - `api/handlers/*.ts` define abilities, object types, queries and mutations per table with the Rumble DSL (`abilityBuilder`, `object`, `query`, `schemaBuilder`, `pubsub`). Custom resolvers must apply `ctx.abilities.<table>.filter(action)` themselves.
 - `api/context.ts` builds the request context: `user` (OIDC claims), `isTeam`, `isAdmin`, `mustBeLoggedIn()`. Role checks live in `api/services/authHelper.ts` (`isTeamEmail`, `isAdminEmail`, `requireTeam`, `requireAdmin`).
 - `api/services/OIDC.ts` wraps `@m1212e/sveltekit-oidc`. `authenticatedRoutes` (`/login`, `/app`, `/admin`) trigger the login flow, every other route is public. Users are upserted on login.
-- `api/services/storage.ts`: S3 client, presigned upload/download URLs, public derivative URLs. `api/services/health.ts`: database, buckets and queue status for `/api/health` and the landing page.
+- `api/services/storage.ts`: S3 client, presigned upload/download URLs, public derivative URLs. `api/services/health.ts`: database, buckets and queue status for `/api/health`.
 - `lib/config/{public,private}.ts`: Zod-validated env wrappers. Read config through them, never from `$env` or `process.env` directly.
 - `lib/api/client.ts` exports `urqlClient` for the generated client. No normalized cache, no offline persistence (deliberate, unlike chase).
-- `routes/`: `+page.svelte` is the only page so far. `/login` and `/logout` are server-only redirects, `/api/graphql` is Yoga, `/api/health` is JSON.
+- `routes/`: the gallery from the "Galerie v2" design. `/` landing, `/usage` usage notes, `/[series]` all editions of a conference series, `/[series]/[event]` conference page, `/[series]/[event]/[...category]` photo grid with the category sidebar. The lightbox is an overlay driven by `?photo=<id>`, so every photo has a shareable URL. `/login` and `/logout` are server-only redirects, `/api/graphql` is Yoga, `/api/health` is JSON.
+- `lib/server/gallery/`: the read side the load functions call (`listSeries`, `getSeries`, `getEvent`, `getCategoryPage`), filtered by `viewerOf(locals)` so guests never receive team-private photos. It serves `demo.ts` until the domain tables exist; swap the implementation, keep the signatures. View models live in `lib/gallery/types.ts`.
+- `lib/components/`: `SiteHeader`, `SiteFooter`, `Logo` (DMUN CDN artwork, light and dark), `AccentStripe`, `LeafWatermark`, `EventCard`, `CategoryGrid`, `PhotoMasonry`, `Lightbox`, `DownloadPanel`, `CopyLinkButton`.
 
 ### Processor (`apps/processor/src`)
 
@@ -79,7 +81,8 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 - **Database columns**: snake_case via `snakeCase.table`. Timestamps `created_at`, `updated_at` on every table.
 - **i18n**: `apps/server/messages/{en,de}.json`, used as `m.key()` from `$lib/paraglide/messages`. Add English first.
 - **Icons**: `phosphor-svelte`, import per icon from `phosphor-svelte/lib/<Name>Icon`, weight `duotone` by default.
-- **Styling**: Tailwind v4 + DaisyUI (themes off, DMUN themes from the corporate identity package), `data-theme` light/dark.
+- **Styling**: Tailwind v4 + DaisyUI (themes off, DMUN themes from the corporate identity package), `data-theme` light/dark. Use DaisyUI components (`btn`, `badge`, `menu`, `breadcrumbs`, `modal`, `join`, `radio`, …) and theme colours (`primary` headings and links, `neutral` for dark surfaces, `base-200` for text boxes, `accent` only for the Akzentstreifen), Tailwind utilities for everything else. No custom CSS tokens. Flat by rule: no shadows on cards, no rounding except the Akzentstreifen and DaisyUI's own controls.
+- **Demo photos**: `apps/server/static/demo/` holds the design's photos, gitignored because they show identifiable people. Without them the demo pages show broken images.
 - **Storage keys**: decided in `storageKeys` (`@shoebox/shared`), nowhere else.
 - **Jobs**: new job types are added to `processingJobTypes` + `jobPayloadSchemas` in `@shoebox/shared`, then to `handlers/index.ts` in the processor, then a migration for the enum.
 - Prose in docs: no semicolons or em dashes.

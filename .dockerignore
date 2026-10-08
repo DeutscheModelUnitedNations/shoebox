@@ -19,3 +19,4 @@ apps/server/src/lib/paraglide
 .DS_Store
 garage
 scripts/dev
+apps/server/static/demo
