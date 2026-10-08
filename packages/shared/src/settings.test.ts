@@ -27,5 +27,10 @@ describe('settings', () => {
 			['medium', 640],
 			['large', 1920]
 		]);
+		expect(variantSpecs(downloads, { hero: true }).at(-1)).toEqual({
+			name: 'hero',
+			maxEdge: 3840,
+			watermark: true
+		});
 	});
 });

@@ -7,7 +7,7 @@
 	import EventFields from '$lib/components/studio/EventFields.svelte';
 	import PhotographerAccess from '$lib/components/studio/PhotographerAccess.svelte';
 	import StudioHeading from '$lib/components/studio/StudioHeading.svelte';
-	import type { EventDraft } from '$lib/studio/drafts';
+	import { toEventDraft, type EventDraft } from '$lib/studio/drafts';
 	import { m } from '$lib/paraglide/messages';
 	import { attempt, runAndReload } from '$lib/studio/toast.svelte';
 
@@ -16,10 +16,10 @@
 	const eventsHref = resolve('/(studio)/admin/events');
 	// A form draft: bound fields mutate it deeply, which a writable $derived would not track
 	// eslint-disable-next-line svelte/prefer-writable-derived
-	let draft = $state<EventDraft>(untrack(() => ({ ...data.event })));
+	let draft = $state<EventDraft>(untrack(() => toEventDraft(data.event)));
 	// Fresh server data replaces the draft, e.g. after saving
 	$effect(() => {
-		draft = { ...data.event };
+		draft = toEventDraft(data.event);
 	});
 
 	const save = () =>

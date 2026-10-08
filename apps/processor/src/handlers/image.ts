@@ -79,17 +79,26 @@ export async function loadRenderConfig(
 	ctx: HandlerContext,
 	mediaId: string
 ): Promise<RenderConfig> {
-	const [downloads, watermark, row] = await Promise.all([
+	const [downloads, watermark, row, heroOf] = await Promise.all([
 		getSetting(ctx.db, 'downloads'),
 		getSetting(ctx.db, 'watermark'),
 		ctx.db
 			.select({ photographer: schema.media.photographer })
 			.from(schema.media)
 			.where(eq(schema.media.id, mediaId))
-			.then((rows) => rows[0])
+			.then((rows) => rows[0]),
+		// Conference banners get the extra large `hero` size
+		ctx.db
+			.select({ id: schema.event.id })
+			.from(schema.event)
+			.where(eq(schema.event.heroMediaId, mediaId))
+			.limit(1)
 	]);
 	const credit = watermark.credit && row?.photographer ? `Foto: ${row.photographer}` : undefined;
-	return { variants: variantSpecs(downloads), watermark: { ...watermark, credit } };
+	return {
+		variants: variantSpecs(downloads, { hero: heroOf.length > 0 }),
+		watermark: { ...watermark, credit }
+	};
 }
 
 type Encoded = Awaited<ReturnType<typeof encodeWebp>>;

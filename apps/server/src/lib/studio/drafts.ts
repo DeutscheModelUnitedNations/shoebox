@@ -46,6 +46,21 @@ export function newEventDraft(series: SeriesLike | undefined, year: number): Eve
 	};
 }
 
+/** Only the fields EventInput takes, the loaded event also carries its id. */
+export const toEventDraft = (event: EventDraft): EventDraft => ({
+	seriesId: event.seriesId,
+	name: event.name,
+	edition: event.edition,
+	subtitle: event.subtitle,
+	location: event.location,
+	description: event.description,
+	dateFrom: event.dateFrom,
+	dateTo: event.dateTo,
+	datePrecision: event.datePrecision,
+	visibility: event.visibility,
+	rights: event.rights
+});
+
 export const emptySeries = (): SeriesDraft => ({
 	id: null,
 	name: '',

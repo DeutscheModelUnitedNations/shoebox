@@ -24,6 +24,10 @@
 	<div class="h-64 overflow-hidden sm:h-80 lg:h-110">
 		<BlurImage
 			src={event.hero.url}
+			srcset={event.hero.banner
+				? `${event.hero.url} ${event.hero.width}w, ${event.hero.banner.url} ${event.hero.banner.width}w`
+				: undefined}
+			sizes="100vw"
 			placeholder={event.hero.placeholder}
 			position="50% 40%"
 			alt={event.hero.alt}
@@ -86,10 +90,7 @@
 
 {#if event.highlights.length > 0}
 	<section class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 pt-12 pb-6 lg:px-12 lg:pt-14">
-		<div class="flex items-baseline justify-between gap-4">
-			<h2 class="text-primary text-2xl leading-none font-bold lg:text-3xl">{m.highlights()}</h2>
-			<span class="text-base-content/60 text-sm">{m.highlightsNote()}</span>
-		</div>
+		<h2 class="text-primary text-2xl leading-none font-bold lg:text-3xl">{m.highlights()}</h2>
 		<PhotoMasonry photos={event.highlights} />
 	</section>
 {/if}

@@ -30,6 +30,8 @@ export interface Photo {
 	visibility: Visibility;
 	/** Grid variant */
 	thumbUrl: string;
+	/** Extra large size of conference banners, only on hero photos */
+	banner?: { url: string; width: number };
 	/** Blurhash as PNG data URL, shown while the image loads */
 	placeholder: string | null;
 	/** Lightbox variant */

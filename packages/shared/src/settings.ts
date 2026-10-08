@@ -79,11 +79,26 @@ export function parseSetting<K extends SettingKey>(key: K, value: unknown): Sett
 	return (parsed.success ? parsed.data : schema.parse({})) as SettingValue<K>;
 }
 
-/** The two configurable derivative sizes plus the fixed grid thumbnail. */
-export function variantSpecs(downloads: DownloadSettings) {
-	return [
+/** Long edge of the conference banner, wide enough for large high-density screens */
+export const HERO_LONG_EDGE = 3840;
+
+interface VariantSpec {
+	name: 'thumb' | 'medium' | 'large' | 'hero';
+	maxEdge: number;
+	watermark: boolean;
+}
+
+/**
+ * The two configurable derivative sizes plus the fixed grid thumbnail, and the `hero` banner
+ * size for photos that are some conference's hero image.
+ */
+export function variantSpecs(downloads: DownloadSettings, { hero = false } = {}): VariantSpec[] {
+	const variants: VariantSpec[] = [
 		{ name: 'thumb', maxEdge: 320, watermark: false },
 		{ name: 'medium', maxEdge: downloads.preview.longEdge, watermark: true },
 		{ name: 'large', maxEdge: downloads.web.longEdge, watermark: true }
-	] as const;
+	];
+	return hero
+		? [...variants, { name: 'hero', maxEdge: HERO_LONG_EDGE, watermark: true }]
+		: variants;
 }

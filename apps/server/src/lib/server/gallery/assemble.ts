@@ -75,7 +75,14 @@ export async function toPhoto(
 ): Promise<Photo | undefined> {
 	const shown = shownVariants(row);
 	if (!shown) return undefined;
-	const [thumbUrl, url] = await Promise.all([urlOf(shown.thumb), urlOf(shown.large)]);
+	const bannerKey = storageKeys.derivative(row.id, 'hero', 'webp');
+	// Only worth offering when it is sharper than `large`, small originals render both alike
+	const banner = row.derivatives.find((d) => d.key === bannerKey && d.width > shown.large.width);
+	const [thumbUrl, url, bannerUrl] = await Promise.all([
+		urlOf(shown.thumb),
+		urlOf(shown.large),
+		banner && urlOf(banner)
+	]);
 	return {
 		id: row.id,
 		title: row.title,
@@ -84,6 +91,7 @@ export async function toPhoto(
 		takenAt: (row.takenAt ?? row.createdAt).toISOString(),
 		visibility: row.visibility,
 		thumbUrl,
+		...(banner && bannerUrl && { banner: { url: bannerUrl, width: banner.width } }),
 		placeholder: placeholderUrl(row.blurhash, shown.large),
 		url,
 		width: shown.large.width,

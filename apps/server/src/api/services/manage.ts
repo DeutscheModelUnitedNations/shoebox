@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 import { enqueueJob, mediaByHash, nextMediaSortOrder } from '@shoebox/db';
-import { deletePrefix, nanoid } from '@shoebox/shared';
+import { deletePrefix, nanoid, storageKeys } from '@shoebox/shared';
 import { db, schema } from '$api/db';
 import {
 	duplicateFields,
@@ -213,6 +213,13 @@ export async function setEventCover(eventId: string, mediaId: string) {
 		.update(schema.event)
 		.set({ coverMediaId: mediaId, heroMediaId: mediaId })
 		.where(eq(schema.event.id, eventId));
+	// The processor adds the banner size for hero photos, render it once if it is missing
+	const [row] = await db
+		.select({ derivatives: schema.media.derivatives })
+		.from(schema.media)
+		.where(eq(schema.media.id, mediaId));
+	const bannerKey = storageKeys.derivative(mediaId, 'hero', 'webp');
+	if (row && !row.derivatives.some((d) => d.key === bannerKey)) await rerender([mediaId]);
 }
 
 /** Moves photos to the trash. Open duplicate pairs involving them are dropped. */

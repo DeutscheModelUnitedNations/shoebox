@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newEventDraft } from './drafts';
+import { newEventDraft, toEventDraft } from './drafts';
 
 const conference = {
 	id: 'sh',
@@ -24,5 +24,13 @@ describe('newEventDraft', () => {
 	it('leaves the name open for associations and without series', () => {
 		expect(newEventDraft({ ...conference, kind: 'ASSOCIATION' }, 2027).name).toBe('');
 		expect(newEventDraft(undefined, 2027)).toMatchObject({ seriesId: '', name: '' });
+	});
+});
+
+describe('toEventDraft', () => {
+	it('drops fields the mutation input does not take', () => {
+		const loaded = { id: 'e1', ...newEventDraft(conference, 2027) };
+		expect(toEventDraft(loaded)).not.toHaveProperty('id');
+		expect(toEventDraft(loaded)).toEqual(newEventDraft(conference, 2027));
 	});
 });
