@@ -2,7 +2,7 @@
  * Turns database rows into the raw gallery structures tree.ts builds view models from. Pure,
  * the only side effect (URL signing) is passed in.
  */
-import { storageKeys, type DerivativeResult } from '@shoebox/shared';
+import { storageKeys, type DerivativeResult, type DownloadSettings } from '@shoebox/shared';
 import type { schema } from '@shoebox/db';
 import type { Download, Photo } from '$lib/gallery/types';
 import type { RawCategory, RawEvent, RawSeries } from './tree';
@@ -25,33 +25,53 @@ function shownVariants(row: MediaRow) {
 	return thumb && medium && large ? { thumb, medium, large } : undefined;
 }
 
+/** Download settings key for each variant: preview = medium, web = large. */
+const settingFor = { medium: 'preview', large: 'web', original: 'original' } as const;
+
 function download(
 	row: MediaRow,
 	variant: Download['variant'],
-	size: { width: number; height: number; bytes: number }
+	size: { width: number; height: number; bytes: number },
+	settings: DownloadSettings
 ): Download {
+	const { guests, team, watermark } = settings[settingFor[variant]];
 	return {
 		variant,
 		href: `/api/media/${row.id}/download?variant=${variant}`,
 		width: size.width,
 		height: size.height,
 		bytes: size.bytes,
-		teamOnly: variant === 'original'
+		guests,
+		team,
+		watermark
 	};
 }
 
-function downloadsOf(row: MediaRow, medium: DerivativeResult, large: DerivativeResult) {
+function downloadsOf(
+	row: MediaRow,
+	medium: DerivativeResult,
+	large: DerivativeResult,
+	settings: DownloadSettings
+) {
 	const original = {
 		width: row.width ?? large.width,
 		height: row.height ?? large.height,
 		bytes: row.bytes ?? 0
 	};
 	// Small originals render medium and large at the same size, offer it once
-	const sizes = medium.width === large.width ? [] : [download(row, 'medium', medium)];
-	return [...sizes, download(row, 'large', large), download(row, 'original', original)];
+	const sizes = medium.width === large.width ? [] : [download(row, 'medium', medium, settings)];
+	return [
+		...sizes,
+		download(row, 'large', large, settings),
+		download(row, 'original', original, settings)
+	].filter((d) => d.guests || d.team);
 }
 
-export async function toPhoto(row: MediaRow, urlOf: UrlOf): Promise<Photo | undefined> {
+export async function toPhoto(
+	row: MediaRow,
+	urlOf: UrlOf,
+	settings: DownloadSettings
+): Promise<Photo | undefined> {
 	const shown = shownVariants(row);
 	if (!shown) return undefined;
 	const [thumbUrl, url] = await Promise.all([urlOf(shown.thumb), urlOf(shown.large)]);
@@ -67,11 +87,14 @@ export async function toPhoto(row: MediaRow, urlOf: UrlOf): Promise<Photo | unde
 		width: shown.large.width,
 		height: shown.large.height,
 		mimeType: row.mimeType,
-		downloads: downloadsOf(row, shown.medium, shown.large)
+		downloads: downloadsOf(row, shown.medium, shown.large, settings)
 	};
 }
 
-/** Nests categories under their parents, attaching the visible photos. */
+/**
+ * Nests categories under their parents, attaching the visible photos. Categories whose parent
+ * was filtered out (hidden) are dropped with their whole subtree.
+ */
 export function buildTree(
 	categories: CategoryRow[],
 	media: MediaRow[],
@@ -96,8 +119,9 @@ export function buildTree(
 	const roots: RawCategory[] = [];
 	// Categories arrive sorted, so children keep their order
 	for (const c of categories) {
-		const parent = nodes.get(c.parentId ?? '');
-		(parent?.children ?? roots).push(nodes.get(c.id)!);
+		const node = nodes.get(c.id)!;
+		if (!c.parentId) roots.push(node);
+		else nodes.get(c.parentId)?.children.push(node);
 	}
 	return roots;
 }

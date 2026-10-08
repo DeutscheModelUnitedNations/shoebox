@@ -9,6 +9,7 @@
  *   bun run db:seed            seeds once, skips when demo data exists
  *   bun run db:seed --force    deletes the demo series (rows and S3 objects) and seeds again
  */
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -20,7 +21,7 @@ import {
 	s3EnvSchema,
 	storageKeys
 } from '@shoebox/shared';
-import { eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 
 const env = databaseEnvSchema.extend(s3EnvSchema.shape).parse(process.env);
 const db = createDb(env.DATABASE_URL);
@@ -453,7 +454,7 @@ async function uploadAndQueue(rows: MediaRow[]) {
 		);
 		await db
 			.update(schema.media)
-			.set({ bytes: body.byteLength })
+			.set({ bytes: body.byteLength, sha256: createHash('sha256').update(body).digest('hex') })
 			.where(eq(schema.media.id, row.id!));
 		await enqueueJob(db, 'IMAGE_DERIVATIVES', {
 			mediaId: row.id!,
@@ -499,6 +500,25 @@ for (const [i, seriesSpec] of demo.entries()) {
 	}
 	log(`seeded ${seriesSpec.shortName}`);
 }
+
+/** The photographer account of oidc-mock.yaml may upload to the latest MUN-SH. */
+async function grantDemoPhotographer(email: string) {
+	const [latest] = await db
+		.select({ id: schema.event.id })
+		.from(schema.event)
+		.innerJoin(schema.series, eq(schema.event.seriesId, schema.series.id))
+		.where(eq(schema.series.slug, demo[0].slug))
+		.orderBy(desc(schema.event.dateFrom))
+		.limit(1);
+	await db.insert(schema.photographer).values({ email }).onConflictDoNothing();
+	await db
+		.insert(schema.eventPhotographer)
+		.values({ eventId: latest.id, email })
+		.onConflictDoNothing();
+	log(`${email} may upload to the latest ${demo[0].shortName}`);
+}
+
+await grantDemoPhotographer('photo@example.com');
 
 log(`uploading ${allMedia.length} originals and queueing them for the processor`);
 await uploadAndQueue(allMedia);

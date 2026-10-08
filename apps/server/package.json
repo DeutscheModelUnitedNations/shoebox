@@ -39,6 +39,7 @@
 		"@types/pg": "^8.23.1",
 		"@urql/core": "^6.0.3",
 		"@urql/exchange-graphcache": "^9.0.1",
+		"@zip.js/zip.js": "^2.17.0",
 		"daisyui": "^5.7.20",
 		"graphql": "^16.14.2",
 		"oidc-mock": "^0.2.0",

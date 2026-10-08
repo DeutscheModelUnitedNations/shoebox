@@ -1,5 +1,5 @@
 import { and, eq, lt, lte, sql } from 'drizzle-orm';
-import type { JobPayload, ProcessingJobStatus, ProcessingJobType } from '@shoebox/shared';
+import type { JobInput, ProcessingJobStatus, ProcessingJobType } from '@shoebox/shared';
 import { jobPayloadSchemas } from '@shoebox/shared';
 import type { Database } from './index';
 import { processingJob } from './schema';
@@ -16,7 +16,7 @@ export type ProcessingJobRow = typeof processingJob.$inferSelect;
 export async function enqueueJob<T extends ProcessingJobType>(
 	db: Database,
 	type: T,
-	payload: JobPayload<T>,
+	payload: JobInput<T>,
 	options: { runAt?: Date; maxAttempts?: number } = {}
 ): Promise<ProcessingJobRow> {
 	const parsed = jobPayloadSchemas[type].parse(payload) as Record<string, unknown>;

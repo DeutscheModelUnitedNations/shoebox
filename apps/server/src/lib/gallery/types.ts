@@ -14,8 +14,11 @@ export interface Download {
 	width: number;
 	height: number;
 	bytes: number;
-	/** Original and watermark-free files are reserved for team members. */
-	teamOnly: boolean;
+	/** Who may download this size, from the admin download settings */
+	guests: boolean;
+	team: boolean;
+	/** ALWAYS, GUESTS (team gets the clean file) or OPTIONAL (team may opt out) */
+	watermark: 'ALWAYS' | 'GUESTS' | 'OPTIONAL';
 }
 
 export interface Photo {

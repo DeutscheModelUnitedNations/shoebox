@@ -108,7 +108,39 @@ export type DateWhereInputArgument = {
   notLike?: String | null | undefined    
 };
 		
+export type DateprecisionEnum = "DAY" | "MONTH" | "YEAR";
+		
+export type DownloadSizeInput = {
+  guests: Boolean,
+  longEdge?: Int | null | undefined,
+  team: Boolean,
+  watermark: WatermarkPolicy    
+};
+		
+export type DuplicateDecisionInput = {
+  candidateId: ID,
+  keep: DuplicateKeep    
+};
+		
+export type DuplicateKeep = "BOTH" | "LEFT" | "RIGHT";
+		
 export type EmailAddress = string;
+		
+export type EventInput = {
+  dateFrom: String,
+  datePrecision: DateprecisionEnum,
+  dateTo?: String | null | undefined,
+  description: String,
+  edition: String,
+  location: String,
+  name: String,
+  rights?: String | null | undefined,
+  seriesId: ID,
+  subtitle: String,
+  visibility: EventvisibilityEnum    
+};
+		
+export type EventvisibilityEnum = "HIDDEN" | "PUBLIC";
 		
 export type Float = number;
 		
@@ -204,15 +236,165 @@ export type JSONWhereInputArgument = {
 		
 export type Locale = string;
 		
+export type MediavisibilityEnum = "PUBLIC" | "TEAM";
+		
 export type Mutation = {
+  abandonUpload: (p: {
+    mediaIds: ID[]
+  }) => Int,
+  abortZipUpload: (p: {
+    batch: String,
+    eventId: ID,
+    uploadId: String
+  }) => Boolean,
+  assignPhotographer: (p: {
+    email: String,
+    eventId: ID
+  }) => Boolean,
+  completeUpload: (p: {
+    mediaIds: ID[]
+  }) => Int,
+  completeZipUpload: (p: {
+    batch: String,
+    eventId: ID,
+    folders: ZipFolderInput[],
+    hideNewCategories: Boolean,
+    parts: UploadedPartInput[],
+    photographer: String,
+    rootToSkip?: String | null | undefined,
+    uploadId: String,
+    visibility: MediavisibilityEnum
+  }) => Boolean,
+  copyCategories: (p: {
+    fromEventId: ID,
+    toEventId: ID
+  }) => Int,
+  createCategory: (p: {
+    eventId: ID,
+    name: String,
+    parentId?: ID | null | undefined
+  }) => ID,
+  createEvent: (p: {
+    input: EventInput
+  }) => ID,
+  createSeries: (p: {
+    input: SeriesInput
+  }) => ID,
+  deleteCategory: (p: {
+    id: ID,
+    moveTo?: ID | null | undefined
+  }) => Boolean,
+  deleteEvent: (p: {
+    id: ID
+  }) => Boolean,
+  deleteMediaForever: (p: {
+    eventId: ID,
+    mediaIds: ID[]
+  }) => Int,
+  deleteSeries: (p: {
+    id: ID
+  }) => Boolean,
   enqueuePingJob: (p?: {
     message?: String | null | undefined
-  }) => Processingjob    
+  }) => Processingjob,
+  invitePhotographer: (p: {
+    email: String
+  }) => String,
+  prepareUpload: (p: {
+    batch: String,
+    caption?: String | null | undefined,
+    categoryId?: ID | null | undefined,
+    eventId: ID,
+    files: UploadFileInput[],
+    photographer: String,
+    visibility: MediavisibilityEnum
+  }) => PreparedUpload[],
+  renameCategory: (p: {
+    id: ID,
+    name: String
+  }) => Boolean,
+  reorderCategories: (p: {
+    eventId: ID,
+    orderedIds: ID[]
+  }) => Boolean,
+  reorderMedia: (p: {
+    eventId: ID,
+    orderedIds: ID[]
+  }) => Int,
+  resolveDuplicates: (p: {
+    decisions: DuplicateDecisionInput[],
+    eventId: ID
+  }) => Int,
+  restoreMedia: (p: {
+    eventId: ID,
+    mediaIds: ID[]
+  }) => Int,
+  revokePhotographer: (p: {
+    email: String
+  }) => Boolean,
+  saveRenderSettings: (p: {
+    credit: Boolean,
+    opacity: Int,
+    original: DownloadSizeInput,
+    position: String,
+    preview: DownloadSizeInput,
+    size: Int,
+    web: DownloadSizeInput
+  }) => Int,
+  saveUsageNotes: (p: {
+    de: String,
+    en: String
+  }) => Boolean,
+  setCategoryHidden: (p: {
+    hidden: Boolean,
+    id: ID
+  }) => Boolean,
+  setEventCover: (p: {
+    eventId: ID,
+    mediaId: ID
+  }) => Boolean,
+  startZipUpload: (p: {
+    batch: String,
+    eventId: ID,
+    size: Float
+  }) => ZipUpload,
+  trashMedia: (p: {
+    eventId: ID,
+    mediaIds: ID[]
+  }) => Int,
+  unassignPhotographer: (p: {
+    email: String,
+    eventId: ID
+  }) => Boolean,
+  updateEvent: (p: {
+    id: ID,
+    input: EventInput
+  }) => Boolean,
+  updateMedia: (p: {
+    categoryId?: ID | null | undefined,
+    eventId: ID,
+    mediaIds: ID[],
+    moveCategory?: Boolean | null | undefined,
+    photographer?: String | null | undefined,
+    title?: String | null | undefined,
+    visibility?: MediavisibilityEnum | null | undefined
+  }) => Int,
+  updateSeries: (p: {
+    id: ID,
+    input: SeriesInput
+  }) => Boolean    
 };
 		
 export type PersonName = string;
 		
 export type PhoneNumber = string;
+		
+export type PreparedUpload = {
+  duplicateOfId: ID | null,
+  duplicateOfName: String | null,
+  mediaId: ID,
+  uploadUrl: String    
+};
 		
 export type Processingjob = {
   attempts: Int,
@@ -270,7 +452,7 @@ export type ProcessingjobWhereInputArgument = {
 		
 export type ProcessingjobstatusEnum = "FAILED" | "PENDING" | "RUNNING" | "SUCCEEDED";
 		
-export type ProcessingjobtypeEnum = "IMAGE_DERIVATIVES" | "PING" | "VIDEO_DERIVATIVES";
+export type ProcessingjobtypeEnum = "IMAGE_DERIVATIVES" | "PING" | "VIDEO_DERIVATIVES" | "ZIP_IMPORT";
 		
 export type Query = {
   me: () => User | null,
@@ -293,6 +475,15 @@ export type Query = {
     where?: UserWhereInputArgument | null | undefined
   }) => User[]    
 };
+		
+export type SeriesInput = {
+  kind: SerieskindEnum,
+  name: String,
+  region: String,
+  shortName: String    
+};
+		
+export type SerieskindEnum = "ASSOCIATION" | "CONFERENCE";
 		
 export type SortingParameter = "asc" | "desc";
 		
@@ -342,12 +533,25 @@ export type Subscription = {
   }) => User[]    
 };
 		
+export type UploadFileInput = {
+  name: String,
+  sha256: String,
+  size: Int,
+  type: String    
+};
+		
+export type UploadedPartInput = {
+  etag: String,
+  partNumber: Int    
+};
+		
 export type User = {
   createdAt: DateTime,
   email: String,
   familyName: String,
   givenName: String,
   id: ID,
+  lastSeenAt: DateTime | null,
   locale: String | null,
   preferredUsername: String,
   updatedAt: DateTime    
@@ -359,6 +563,7 @@ export type UserOrderInputArgument = {
   familyName?: SortingParameter | null | undefined,
   givenName?: SortingParameter | null | undefined,
   id?: SortingParameter | null | undefined,
+  lastSeenAt?: SortingParameter | null | undefined,
   locale?: SortingParameter | null | undefined,
   preferredUsername?: SortingParameter | null | undefined,
   updatedAt?: SortingParameter | null | undefined    
@@ -373,9 +578,25 @@ export type UserWhereInputArgument = {
   familyName?: StringWhereInputArgument | null | undefined,
   givenName?: StringWhereInputArgument | null | undefined,
   id?: IDWhereInputArgument | null | undefined,
+  lastSeenAt?: DateTimeWhereInputArgument | null | undefined,
   locale?: StringWhereInputArgument | null | undefined,
   preferredUsername?: StringWhereInputArgument | null | undefined,
   updatedAt?: DateTimeWhereInputArgument | null | undefined    
+};
+		
+export type WatermarkPolicy = "ALWAYS" | "GUESTS" | "OPTIONAL";
+		
+export type ZipFolderInput = {
+  categoryId?: ID | null | undefined,
+  folder: String,
+  newName?: String | null | undefined    
+};
+		
+export type ZipUpload = {
+  batch: String,
+  partSize: Int,
+  partUrls: String[],
+  uploadId: String    
 };
 		
 export const defaultOptions: ConstructorParameters<Client>[0] = {

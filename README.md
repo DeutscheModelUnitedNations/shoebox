@@ -2,7 +2,7 @@
 
 Shoebox is the photo and video gallery for Model United Nations conferences, built by the German non-profit [Deutsche Model United Nations (DMUN) e.V.](https://dmun.de). Team members and photographers upload media into conference albums, the public browses what is public, and the team sees the rest.
 
-> Gallery pages read conferences, categories and media from Postgres and serve images from S3. Uploads and admin tooling are next.
+> The gallery, the upload and manage screens for photographers and the admin area are in place. Video support is not.
 
 ## Architecture
 
@@ -42,21 +42,26 @@ garage/        Garage config for dev.docker-compose.yml
 
 ### Access model
 
-| Who       | How it is determined                                                 | Sees                          | May                                                    |
-| --------- | -------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------ |
-| Visitor   | not logged in                                                        | public media                  | browse                                                 |
-| Signed in | any OIDC login                                                       | public media                  | browse, edit conferences an admin granted them         |
-| Team      | email in `TEAM_EMAIL_WHITELIST` or domain in `TEAM_DOMAIN_WHITELIST` | public and team-private media | the above                                              |
-| Admin     | `ADMIN_EMAIL_WHITELIST` / `ADMIN_DOMAIN_WHITELIST`, always team      | everything                    | manage everything, grant per-conference editing rights |
+| Who         | How it is determined                                                         | Sees                          | May                                                    |
+| ----------- | ---------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------ |
+| Visitor     | not logged in                                                                | public media                  | browse                                                 |
+| Signed in   | any OIDC login                                                               | public media                  | browse                                                 |
+| Fotograf*in | email granted by an admin under Admin › Nutzer*innen, stored in the database | like team                     | upload to and manage the conferences assigned to them  |
+| Team        | email in `TEAM_EMAIL_WHITELIST` or domain in `TEAM_DOMAIN_WHITELIST`         | public and team-private media | the above                                              |
+| Admin       | `ADMIN_EMAIL_WHITELIST` / `ADMIN_DOMAIN_WHITELIST`, always team              | everything                    | manage everything, grant per-conference editing rights |
 
-Roles are derived from the email at request time, nothing is stored. There is no OIDC role claim parsing.
+Team and admin are derived from the email at request time. The Fotograf*in role is the only one stored, it applies from the first login with that email. There is no OIDC role claim parsing. Hidden conferences are visible to admins and their assigned photographers only.
 
 ### Media pipeline
 
 1. The browser asks the server for a presigned `PUT` and uploads the original straight into the private originals bucket.
 2. The server records the media and enqueues a processing job (`packages/db` → `enqueueJob`), which also fires a Postgres `NOTIFY`.
 3. A processor claims the job with `FOR UPDATE SKIP LOCKED`, renders WebP derivatives (`thumb`, `medium`, `large`), a blurhash and EXIF (GPS kept separate) with sharp, or a poster frame with ffmpeg for video, and uploads them to the public derivatives bucket. `medium` and `large` carry a subtle white DMUN watermark there, their watermark-free copies go to the private originals bucket (`media/<id>/clean/`) for team downloads.
-4. Failed jobs retry with exponential backoff up to `maxAttempts`, jobs left `RUNNING` by a crashed worker are recovered automatically.
+4. Uploads also hash every file with SHA-256 in the browser. Exact copies of a photo in the same conference are held back until someone decides in the duplicate review, near copies (perceptual hash) are flagged there too.
+5. ZIP archives go to S3 as a multipart upload. A `ZIP_IMPORT` job unpacks them, maps folders to categories as chosen in the browser and queues every image.
+6. Watermark position, size, opacity, photographer credit, download sizes and who may download what are admin settings. Changing them re-renders every photo.
+7. Deleted photos stay in a per-conference trash for 30 days, the processor purges them afterwards.
+8. Failed jobs retry with exponential backoff up to `maxAttempts`, jobs left `RUNNING` by a crashed worker are recovered automatically.
 
 ## Development
 

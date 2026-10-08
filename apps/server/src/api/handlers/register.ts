@@ -1,5 +1,8 @@
 import './user';
 import './processingJob';
+import './upload';
+import './manage';
+import './admin';
 import { building, dev } from '$app/environment';
 import { clientCreator } from '$api/rumble';
 

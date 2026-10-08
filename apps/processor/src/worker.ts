@@ -12,6 +12,7 @@ import { jobPayloadSchemas, type ProcessingJobType } from '@shoebox/shared';
 import type { ProcessorConfig } from './config';
 import { handlers, type JobHandler } from './handlers';
 import { log } from './log';
+import { purgeTrash } from './trash';
 
 export class Worker {
 	readonly id = `${process.env.HOSTNAME ?? 'processor'}-${process.pid}`;
@@ -19,6 +20,7 @@ export class Worker {
 	private wake: (() => void) | undefined;
 	private stopped = false;
 	private staleTimer: ReturnType<typeof setInterval> | undefined;
+	private trashTimer: ReturnType<typeof setInterval> | undefined;
 	lastClaimAt: Date | undefined;
 
 	constructor(
@@ -45,12 +47,21 @@ export class Worker {
 			Math.max(10_000, this.config.PROCESSOR_STALE_JOB_MS / 2)
 		);
 
+		// Trashed photos older than the retention period are deleted hourly
+		const purge = () =>
+			purgeTrash(this.db, this.s3, this.config)
+				.then((n) => n && log('info', 'purged trash', { count: n }))
+				.catch((error) => log('error', 'trash purge failed', { error: String(error) }));
+		this.trashTimer = setInterval(purge, 60 * 60 * 1000);
+		void purge();
+
 		while (!this.stopped) {
 			const claimed = await this.fill();
 			if (!claimed) await this.sleep(this.config.PROCESSOR_POLL_INTERVAL_MS);
 		}
 
 		clearInterval(this.staleTimer);
+		clearInterval(this.trashTimer);
 		await Promise.allSettled([...this.active]);
 	}
 

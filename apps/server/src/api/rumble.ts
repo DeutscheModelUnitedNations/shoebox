@@ -5,9 +5,8 @@ import { context } from './context';
 
 // Tell the dev server to reload the handlers so the schema builder does not accumulate
 // stale fields across hot reloads.
-if (dev) {
-	import('$api/handlers/register');
-}
+const reloadHandlers = () => import('$api/handlers/register');
+if (dev) void reloadHandlers();
 
 export const {
 	abilityBuilder,

@@ -11,13 +11,20 @@
 	let selected = $state<DownloadVariant>('large');
 	let noWatermark = $state(false);
 
-	const available = $derived(photo.downloads.filter((d) => isTeam || !d.teamOnly));
-	const locked = $derived(photo.downloads.filter((d) => !isTeam && d.teamOnly));
+	const available = $derived(photo.downloads.filter((d) => (isTeam ? d.team : d.guests)));
+	// Sizes only the team may fetch are shown locked to guests, as an invitation to sign in
+	const locked = $derived(photo.downloads.filter((d) => !isTeam && d.team && !d.guests));
 	const chosen = $derived(
-		available.find((d) => d.variant === selected) ?? available.find((d) => d.variant === 'large')
+		available.find((d) => d.variant === selected) ??
+			available.find((d) => d.variant === 'large') ??
+			available[0]
 	);
-	// Every size comes watermarked, team members may opt out, the original included
-	const href = $derived(chosen && `${chosen.href}${isTeam && noWatermark ? '&clean=1' : ''}`);
+	/** Team members choose when the size allows it, GUESTS sizes come clean for them anyway. */
+	const canChooseClean = $derived(isTeam && chosen?.watermark === 'OPTIONAL');
+	const clean = $derived(
+		isTeam && (chosen?.watermark === 'GUESTS' || (canChooseClean && noWatermark))
+	);
+	const href = $derived(chosen && `${chosen.href}${clean ? '&clean=1' : ''}`);
 
 	const variantLabels = {
 		medium: m.variantMedium,
@@ -34,7 +41,7 @@
 		variantLabels[d.variant]({ width: formatNumber(Math.max(d.width, d.height)) });
 	const buttonLabel = (d: Download) => {
 		const label = buttonLabels[d.variant]({ size: formatBytes(d.bytes) });
-		return isTeam && noWatermark ? `${label} · ${m.withoutWatermark()}` : label;
+		return clean ? `${label} · ${m.withoutWatermark()}` : label;
 	};
 </script>
 
@@ -76,7 +83,7 @@
 				<span class="badge badge-ghost badge-sm uppercase">{m.locked()}</span>
 			</div>
 		{/each}
-		{#if isTeam}
+		{#if canChooseClean}
 			<label class="flex cursor-pointer items-center gap-3 pt-3 text-sm">
 				<input
 					type="checkbox"

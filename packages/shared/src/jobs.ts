@@ -5,7 +5,12 @@ import { z } from 'zod';
  * The `type` column selects the handler, `payload` is validated against the schema here on
  * both ends, and `result` is whatever the handler returns.
  */
-export const processingJobTypes = ['PING', 'IMAGE_DERIVATIVES', 'VIDEO_DERIVATIVES'] as const;
+export const processingJobTypes = [
+	'PING',
+	'IMAGE_DERIVATIVES',
+	'VIDEO_DERIVATIVES',
+	'ZIP_IMPORT'
+] as const;
 export type ProcessingJobType = (typeof processingJobTypes)[number];
 
 export const processingJobStatuses = ['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED'] as const;
@@ -18,28 +23,35 @@ const mediaSource = z.object({
 	bucket: z.string(),
 	key: z.string(),
 	/** Team-private media keeps every derivative in the private bucket. */
-	public: z.boolean()
+	public: z.boolean(),
+	/** Only fresh uploads look for similar photos, re-renders must not revive resolved pairs */
+	detectDuplicates: z.boolean().default(false)
+});
+
+const zipImport = z.object({
+	eventId: z.string(),
+	/** Bucket and key of the uploaded archive, deleted after the import */
+	bucket: z.string(),
+	key: z.string(),
+	/** Folder key (see zipFolderOf) to category id, null files the photos without category */
+	folders: z.record(z.string(), z.string().nullable()),
+	rootToSkip: z.string().nullable(),
+	visibility: z.enum(['PUBLIC', 'TEAM']),
+	photographer: z.string(),
+	uploadedById: z.string().nullable(),
+	batch: z.string()
 });
 
 export const jobPayloadSchemas = {
 	PING: z.object({ message: z.string().optional() }),
 	IMAGE_DERIVATIVES: mediaSource,
-	VIDEO_DERIVATIVES: mediaSource
+	VIDEO_DERIVATIVES: mediaSource,
+	ZIP_IMPORT: zipImport
 } satisfies Record<ProcessingJobType, z.ZodType>;
 
 export type JobPayload<T extends ProcessingJobType> = z.infer<(typeof jobPayloadSchemas)[T]>;
-
-/**
- * Variants the processor renders for every photo and every video poster frame. Watermarked
- * variants are public with the DMUN watermark, their clean copy stays in the private bucket
- * for team downloads.
- */
-export const imageVariants = [
-	{ name: 'thumb', maxEdge: 320, watermark: false },
-	{ name: 'medium', maxEdge: 1024, watermark: true },
-	{ name: 'large', maxEdge: 2048, watermark: true }
-] as const;
-export type ImageVariantName = (typeof imageVariants)[number]['name'];
+/** What callers hand to enqueueJob, defaults still unapplied */
+export type JobInput<T extends ProcessingJobType> = z.input<(typeof jobPayloadSchemas)[T]>;
 
 export const derivativeResultSchema = z.object({
 	variant: z.string(),

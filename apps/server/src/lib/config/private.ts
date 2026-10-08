@@ -16,6 +16,8 @@ const schema = z.object({
 	ADMIN_DOMAIN_WHITELIST: envList,
 
 	...s3EnvSchema.shape,
+	/** Capacity of the object storage in GB, shown next to the usage in the admin area */
+	STORAGE_CAPACITY_GB: z.coerce.number().positive().optional(),
 
 	// Same semantics as the node adapter: forwarded headers are only trusted when configured.
 	ORIGIN: z.string().optional(),

@@ -47,6 +47,10 @@ export interface RawSeries {
 export interface Viewer {
 	/** Team members also see team-private photos */
 	isTeam: boolean;
+	/** Admins also see hidden events and categories */
+	isAdmin?: boolean;
+	/** Events the viewer manages, their hidden parts are visible too */
+	eventIds?: string[];
 }
 
 function canSee(photo: Photo | undefined, viewer: Viewer): photo is Photo {

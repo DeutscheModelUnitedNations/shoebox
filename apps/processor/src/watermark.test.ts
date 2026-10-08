@@ -27,4 +27,19 @@ describe('applyWatermark', () => {
 		const marked = await (await applyWatermark(grey(80, 60))).png().toBuffer();
 		expect(await sharp(marked).metadata()).toMatchObject({ width: 80, height: 60 });
 	});
+
+	it('places the mark where the settings say', async () => {
+		const marked = sharp(
+			await (
+				await applyWatermark(grey(1200, 800), { position: 'top-left', size: 12, opacity: 100 })
+			)
+				.png()
+				.toBuffer()
+		);
+		expect(await meanOf(marked, { left: 0, top: 0, width: 300, height: 150 })).toBeGreaterThan(65);
+		expect(await meanOf(marked, { left: 900, top: 650, width: 300, height: 150 })).toBeCloseTo(
+			60,
+			0
+		);
+	});
 });

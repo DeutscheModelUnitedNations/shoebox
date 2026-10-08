@@ -1,4 +1,4 @@
-import { storageKeys } from '@shoebox/shared';
+import { storageKeys, type DownloadSettings } from '@shoebox/shared';
 import type { MediaRow } from './assemble';
 
 const variants = ['medium', 'large', 'original'] as const;
@@ -6,10 +6,13 @@ type Variant = (typeof variants)[number];
 
 export interface DownloadRequest {
 	variant: string | null;
-	/** Watermark-free copy of medium or large */
+	/** Asks for the watermark-free file */
 	clean: boolean;
 	isTeam: boolean;
+	settings: DownloadSettings;
 }
+
+const settingFor = { medium: 'preview', large: 'web', original: 'original' } as const;
 
 export type DownloadTarget =
 	| { ok: true; bucket: 'originals' | 'derivatives'; key: string; filename: string }
@@ -26,7 +29,9 @@ function filename(row: MediaRow, variant: Variant, ext: string, clean: boolean) 
 }
 
 function visible(row: MediaRow | undefined, isTeam: boolean): row is MediaRow {
-	return !!row && row.status === 'READY' && (row.visibility === 'PUBLIC' || isTeam);
+	return (
+		!!row && row.status === 'READY' && !row.deletedAt && (row.visibility === 'PUBLIC' || isTeam)
+	);
 }
 
 type Target = Extract<DownloadTarget, { ok: true }>;
@@ -55,18 +60,23 @@ function original(row: MediaRow, clean: boolean): DownloadTarget {
 }
 
 /**
- * Decides which object a download request gets. Every size comes watermarked by default.
- * Team members may also fetch originals and, with `clean`, watermark-free copies.
+ * Decides which object a download request gets, following the admin download settings: who
+ * may fetch a size, and whether team members get the clean file (GUESTS), may ask for it
+ * (OPTIONAL) or never get it (ALWAYS).
  */
 export function resolveDownload(row: MediaRow | undefined, req: DownloadRequest): DownloadTarget {
 	const variant = req.variant as Variant;
 	if (!variants.includes(variant)) return { ok: false, status: 400 };
 	if (!visible(row, req.isTeam)) return { ok: false, status: 404 };
-	if ((variant === 'original' || req.clean) && !req.isTeam) return { ok: false, status: 403 };
+	const size = req.settings[settingFor[variant]];
+	if (!(req.isTeam ? size.team : size.guests)) return { ok: false, status: 403 };
+	if (req.clean && !req.isTeam) return { ok: false, status: 403 };
 
-	if (variant === 'original') return original(row, req.clean);
-	const name = filename(row, variant, 'webp', req.clean);
-	if (req.clean) {
+	const clean =
+		req.isTeam && size.watermark !== 'ALWAYS' && (req.clean || size.watermark === 'GUESTS');
+	if (variant === 'original') return original(row, clean);
+	const name = filename(row, variant, 'webp', clean);
+	if (clean) {
 		const key = storageKeys.cleanDerivative(row.id, variant, 'webp');
 		return { ok: true, bucket: 'originals', key, filename: name };
 	}

@@ -1,4 +1,9 @@
-import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+	DeleteObjectsCommand,
+	HeadBucketCommand,
+	ListObjectsV2Command,
+	S3Client
+} from '@aws-sdk/client-s3';
 import type { S3Env } from './env';
 
 export function createS3Client(env: S3Env) {
@@ -9,7 +14,11 @@ export function createS3Client(env: S3Env) {
 		credentials: {
 			accessKeyId: env.S3_ACCESS_KEY_ID,
 			secretAccessKey: env.S3_SECRET_ACCESS_KEY
-		}
+		},
+		// The SDK would otherwise sign a CRC32 of the (empty) body into presigned URLs, and the
+		// browser's PUT of the real file then fails the checksum check
+		requestChecksumCalculation: 'WHEN_REQUIRED',
+		responseChecksumValidation: 'WHEN_REQUIRED'
 	});
 }
 
@@ -36,5 +45,29 @@ export const storageKeys = {
 	cleanDerivative: (mediaId: string, variant: string, ext: string) =>
 		`media/${mediaId}/clean/${variant}.${ext}`,
 	/** Full-resolution copy with the watermark, the default original download for the team. */
-	watermarkedOriginal: (mediaId: string) => `media/${mediaId}/original-watermarked.jpg`
+	watermarkedOriginal: (mediaId: string) => `media/${mediaId}/original-watermarked.jpg`,
+	/** Uploaded ZIP archive, removed once the processor imported it */
+	zipUpload: (batch: string) => `uploads/${batch}.zip`
 };
+
+/** Removes every object under a prefix, page by page. */
+export async function deletePrefix(s3: S3Client, bucket: string, prefix: string) {
+	let token: string | undefined;
+	do {
+		const page = await s3.send(
+			new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token })
+		);
+		const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []));
+		if (keys.length > 0) {
+			await s3.send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: keys } }));
+		}
+		token = page.NextContinuationToken;
+	} while (token);
+}
+
+/** Deletes the original and every derivative of a media item in both buckets. */
+export async function deleteMediaObjects(s3: S3Client, buckets: S3Buckets, mediaId: string) {
+	const prefix = `media/${mediaId}/`;
+	await deletePrefix(s3, buckets.S3_BUCKET_ORIGINALS, prefix);
+	await deletePrefix(s3, buckets.S3_BUCKET_DERIVATIVES, prefix);
+}

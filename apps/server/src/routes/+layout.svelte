@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
 	import SiteHeader from '$lib/components/SiteHeader.svelte';
 	import { initialSetTheme } from '$lib/utils/theme.svelte';
@@ -23,9 +24,17 @@
 </svelte:head>
 
 <div class="flex min-h-dvh flex-col">
-	<SiteHeader user={data.user} isTeam={data.isTeam} isAdmin={data.isAdmin} />
-	<main class="flex-1">
+	<SiteHeader
+		user={data.user}
+		isTeam={data.isTeam}
+		isAdmin={data.isAdmin}
+		isPhotographer={data.isPhotographer}
+	/>
+	<main class="flex flex-1 flex-col">
 		{@render children()}
 	</main>
-	<SiteFooter loggedIn={!!data.user} />
+	<!-- Upload, manage and admin are work screens without the gallery footer -->
+	{#if !page.route.id?.startsWith('/(studio)')}
+		<SiteFooter loggedIn={!!data.user} />
+	{/if}
 </div>

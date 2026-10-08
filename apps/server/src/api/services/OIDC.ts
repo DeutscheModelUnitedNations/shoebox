@@ -47,7 +47,7 @@ export const OIDC = !building
 			loginCallbackRoute: configPublic.PUBLIC_OIDC_LOGIN_CALLBACK_ROUTE,
 			logoutCallbackRoute: configPublic.PUBLIC_OIDC_LOGOUT_CALLBACK_ROUTE,
 			// Visiting one of these without a session starts the login flow.
-			authenticatedRoutes: ['/login', '/app', '/admin'],
+			authenticatedRoutes: ['/login', '/app', '/admin', '/upload', '/manage'],
 			logoutPath: '/',
 			allowBearerToken: true,
 			async userLoggedInSuccessfully({ user }) {

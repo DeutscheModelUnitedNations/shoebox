@@ -8,7 +8,19 @@ export const relations = defineRelations(schema, (r) => ({
 	event: {
 		series: r.one.series({ from: r.event.seriesId, to: r.series.id, optional: false }),
 		categories: r.many.category(),
-		media: r.many.media({ from: r.event.id, to: r.media.eventId })
+		media: r.many.media({ from: r.event.id, to: r.media.eventId }),
+		photographerAccess: r.many.eventPhotographer()
+	},
+	eventPhotographer: {
+		event: r.one.event({ from: r.eventPhotographer.eventId, to: r.event.id, optional: false }),
+		photographer: r.one.photographer({
+			from: r.eventPhotographer.email,
+			to: r.photographer.email,
+			optional: false
+		})
+	},
+	photographer: {
+		events: r.many.eventPhotographer()
 	},
 	category: {
 		event: r.one.event({ from: r.category.eventId, to: r.event.id, optional: false }),

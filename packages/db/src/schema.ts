@@ -46,7 +46,9 @@ export const user = snakeCase.table('user', {
 	familyName: text().notNull(),
 	givenName: text().notNull(),
 	locale: text(),
-	preferredUsername: text().notNull()
+	preferredUsername: text().notNull(),
+	/** Bumped at most every few minutes by the server hook, shown in the users admin */
+	lastSeenAt: timestamp({ mode: 'date' })
 });
 
 export const processingJobType = pgEnum('processing_job_type', processingJobTypes);
@@ -80,7 +82,19 @@ export const seriesKind = pgEnum('series_kind', ['CONFERENCE', 'ASSOCIATION']);
 export const datePrecision = pgEnum('date_precision', ['DAY', 'MONTH', 'YEAR']);
 export const mediaKind = pgEnum('media_kind', ['IMAGE', 'VIDEO']);
 export const mediaVisibility = pgEnum('media_visibility', ['PUBLIC', 'TEAM']);
-export const mediaStatus = pgEnum('media_status', ['PENDING', 'READY', 'FAILED']);
+/**
+ * UPLOADING: row created, the browser is still sending the original.
+ * PENDING: queued for the processor. READY: visible in the gallery.
+ * HELD: exact duplicate of an existing photo, waits for a decision in the duplicate review.
+ */
+export const mediaStatus = pgEnum('media_status', [
+	'UPLOADING',
+	'PENDING',
+	'READY',
+	'HELD',
+	'FAILED'
+]);
+export const eventVisibility = pgEnum('event_visibility', ['PUBLIC', 'HIDDEN']);
 
 /** A conference series (MUN-SH, MUNBW) or the association's own projects. */
 export const series = snakeCase.table('series', {
@@ -116,7 +130,9 @@ export const event = snakeCase.table(
 		photographers: text().array().notNull().default([]),
 		rights: text().notNull(),
 		coverMediaId: text().references((): AnyPgColumn => media.id, { onDelete: 'set null' }),
-		heroMediaId: text().references((): AnyPgColumn => media.id, { onDelete: 'set null' })
+		heroMediaId: text().references((): AnyPgColumn => media.id, { onDelete: 'set null' }),
+		/** Hidden events are only visible to admins and their assigned photographers */
+		visibility: eventVisibility().notNull().default('PUBLIC')
 	},
 	(t) => [unique('event_series_slug').on(t.seriesId, t.slug)]
 );
@@ -133,7 +149,9 @@ export const category = snakeCase.table(
 		slug: text().notNull(),
 		name: text().notNull(),
 		sortOrder: integer().notNull().default(0),
-		coverMediaId: text().references((): AnyPgColumn => media.id, { onDelete: 'set null' })
+		coverMediaId: text().references((): AnyPgColumn => media.id, { onDelete: 'set null' }),
+		/** Hidden from the public gallery, e.g. new categories from a ZIP import */
+		hidden: boolean().notNull().default(false)
 	},
 	(t) => [
 		unique('category_parent_slug').on(t.eventId, t.parentId, t.slug).nullsNotDistinct(),
@@ -172,10 +190,84 @@ export const media = snakeCase.table(
 		blurhash: text(),
 		derivatives: jsonb().$type<DerivativeResult[]>().notNull().default([]),
 		exif: jsonb().$type<Record<string, unknown>>(),
-		gps: jsonb().$type<{ latitude: number; longitude: number }>()
+		gps: jsonb().$type<{ latitude: number; longitude: number }>(),
+		/** Hex SHA-256 of the original, for exact duplicate detection */
+		sha256: text(),
+		/** 64 bit difference hash as hex, for similar image detection */
+		phash: text(),
+		uploadedById: text().references(() => user.id, { onDelete: 'set null' }),
+		/** Groups the files of one upload, the "done" link shows exactly these */
+		uploadBatch: text(),
+		/** Set when moved to the trash, purged after 30 days */
+		deletedAt: timestamp({ mode: 'date' })
 	},
 	(t) => [
 		index('media_event_idx').on(t.eventId, t.status),
 		index('media_category_idx').on(t.categoryId)
 	]
 );
+
+/**
+ * Fotograf*in role, granted by admins per email. A grant without a matching user row is a
+ * pending invitation, it applies on the first OIDC login with that email.
+ */
+export const photographer = snakeCase.table('photographer', {
+	email: text().primaryKey().notNull(),
+	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+	invitedById: text().references(() => user.id, { onDelete: 'set null' })
+});
+
+/** Which photographers may upload to and manage an event. */
+export const eventPhotographer = snakeCase.table(
+	'event_photographer',
+	{
+		id: text()
+			.$defaultFn(() => nanoid())
+			.primaryKey()
+			.notNull(),
+		eventId: text()
+			.notNull()
+			.references(() => event.id, { onDelete: 'cascade' }),
+		email: text()
+			.notNull()
+			.references(() => photographer.email, { onDelete: 'cascade', onUpdate: 'cascade' }),
+		createdAt: timestamp({ mode: 'date' }).defaultNow().notNull()
+	},
+	(t) => [unique('event_photographer_pair').on(t.eventId, t.email)]
+);
+
+/** A pair of possibly identical photos in one event, resolved in the duplicate review. */
+export const duplicateCandidate = snakeCase.table(
+	'duplicate_candidate',
+	{
+		...defaultIdAndTimestamps,
+		eventId: text()
+			.notNull()
+			.references(() => event.id, { onDelete: 'cascade' }),
+		/** The photo that was there first */
+		mediaId: text()
+			.notNull()
+			.references(() => media.id, { onDelete: 'cascade' }),
+		/** The newer upload */
+		otherMediaId: text()
+			.notNull()
+			.references(() => media.id, { onDelete: 'cascade' }),
+		/** 0 to 100 */
+		similarity: integer().notNull()
+	},
+	(t) => [
+		unique('duplicate_pair').on(t.mediaId, t.otherMediaId),
+		index('duplicate_event_idx').on(t.eventId)
+	]
+);
+
+/** Gallery settings edited by admins, one JSON document per key (see @shoebox/shared settings). */
+export const setting = snakeCase.table('setting', {
+	key: text().primaryKey().notNull(),
+	value: jsonb().$type<unknown>().notNull(),
+	updatedAt: timestamp({ mode: 'date' })
+		.defaultNow()
+		.notNull()
+		.$onUpdate(() => new Date()),
+	updatedById: text().references(() => user.id, { onDelete: 'set null' })
+});

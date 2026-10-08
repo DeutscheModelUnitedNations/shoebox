@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, inArray, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
+import { getSetting } from '@shoebox/db';
 import type { DerivativeResult } from '@shoebox/shared';
 import { db, schema } from '$api/db';
 import { buckets, presignDownload, publicDerivativeUrl } from '$api/services/storage';
@@ -9,18 +10,29 @@ import type { RawSeries, Viewer } from './tree';
 /** Presigned URLs for team-private derivatives outlive a long lightbox session. */
 const PRIVATE_URL_TTL = 60 * 60;
 
-function urlOf(derivative: DerivativeResult) {
+/** Public derivatives straight from the bucket website, private ones presigned. */
+export function derivativeUrl(derivative: DerivativeResult) {
 	return derivative.public
 		? publicDerivativeUrl(derivative.key)
 		: presignDownload(buckets.originals, derivative.key, PRIVATE_URL_TTL);
 }
 
-function loadEvents(series: SeriesRow[], eventSlug?: string) {
-	const conditions: SQL[] = [
+/** Hidden events only for admins and their assigned photographers. */
+function visibleEvents(viewer: Viewer): SQL | undefined {
+	if (viewer.isAdmin) return undefined;
+	const assigned = viewer.eventIds ?? [];
+	return assigned.length > 0
+		? or(eq(schema.event.visibility, 'PUBLIC'), inArray(schema.event.id, assigned))
+		: eq(schema.event.visibility, 'PUBLIC');
+}
+
+function loadEvents(series: SeriesRow[], viewer: Viewer, eventSlug?: string) {
+	const conditions: (SQL | undefined)[] = [
 		inArray(
 			schema.event.seriesId,
 			series.map((s) => s.id)
-		)
+		),
+		visibleEvents(viewer)
 	];
 	if (eventSlug) conditions.push(eq(schema.event.slug, eventSlug));
 	return db
@@ -30,20 +42,30 @@ function loadEvents(series: SeriesRow[], eventSlug?: string) {
 		.orderBy(desc(schema.event.dateFrom));
 }
 
+/** Hidden categories only in events the viewer manages. */
+function visibleCategories(events: EventRow[], viewer: Viewer): SQL | undefined {
+	if (viewer.isAdmin) return undefined;
+	const managed = events.filter((e) => viewer.eventIds?.includes(e.id)).map((e) => e.id);
+	return managed.length > 0
+		? or(eq(schema.category.hidden, false), inArray(schema.category.eventId, managed))
+		: eq(schema.category.hidden, false);
+}
+
 /** Categories and the READY media the viewer may see, team-private rows only for the team. */
 async function loadContents(events: EventRow[], viewer: Viewer) {
 	const eventIds = events.map((e) => e.id);
 	if (eventIds.length === 0) return { categories: [], media: [] };
 	const mediaConditions: SQL[] = [
 		inArray(schema.media.eventId, eventIds),
-		eq(schema.media.status, 'READY')
+		eq(schema.media.status, 'READY'),
+		isNull(schema.media.deletedAt)
 	];
 	if (!viewer.isTeam) mediaConditions.push(eq(schema.media.visibility, 'PUBLIC'));
 	const [categories, media] = await Promise.all([
 		db
 			.select()
 			.from(schema.category)
-			.where(inArray(schema.category.eventId, eventIds))
+			.where(and(inArray(schema.category.eventId, eventIds), visibleCategories(events, viewer)))
 			.orderBy(asc(schema.category.sortOrder)),
 		db
 			.select()
@@ -66,12 +88,15 @@ export async function loadSeries(
 		.orderBy(asc(schema.series.sortOrder));
 	if (series.length === 0) return [];
 
-	const events = await loadEvents(series, filter.event);
-	const { categories, media } = await loadContents(events, viewer);
+	const events = await loadEvents(series, viewer, filter.event);
+	const [{ categories, media }, downloads] = await Promise.all([
+		loadContents(events, viewer),
+		getSetting(db, 'downloads')
+	]);
 	const photos = new Map<string, Photo>();
 	await Promise.all(
 		media.map(async (m) => {
-			const photo = await toPhoto(m, urlOf);
+			const photo = await toPhoto(m, derivativeUrl, downloads);
 			if (photo) photos.set(m.id, photo);
 		})
 	);

@@ -5,6 +5,7 @@ import type { ProcessorConfig } from '../config';
 import { imageDerivatives } from './image';
 import { ping } from './ping';
 import { videoDerivatives } from './video';
+import { zipImport } from './zip';
 
 export type HandlerContext = {
 	s3: S3Client;
@@ -21,5 +22,6 @@ export type JobHandler<T extends ProcessingJobType> = (
 export const handlers: { [T in ProcessingJobType]: JobHandler<T> } = {
 	PING: ping,
 	IMAGE_DERIVATIVES: imageDerivatives,
-	VIDEO_DERIVATIVES: videoDerivatives
+	VIDEO_DERIVATIVES: videoDerivatives,
+	ZIP_IMPORT: zipImport
 };
