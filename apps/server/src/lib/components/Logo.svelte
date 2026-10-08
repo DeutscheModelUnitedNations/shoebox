@@ -4,7 +4,7 @@
 	interface Props {
 		/** `full` adds the written-out association name */
 		variant?: 'full' | 'short';
-		/** Always use the white artwork, e.g. on `bg-neutral` */
+		/** Always use the white artwork, e.g. on surfaces with `data-theme="dark"` */
 		onDark?: boolean;
 		/** Height of the image box. The files carry their clear space, the artwork is ~60% of it. */
 		class?: string;

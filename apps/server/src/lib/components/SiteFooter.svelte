@@ -17,7 +17,8 @@
 	});
 </script>
 
-<footer class="bg-neutral text-neutral-content">
+<!-- Always the dark ground, so the footer carries the dark theme itself -->
+<footer data-theme="dark" class="bg-base-100 text-base-content border-base-300 border-t">
 	<div class="mx-auto flex max-w-7xl flex-col gap-12 px-5 pt-16 pb-10 lg:px-12">
 		<div class="grid gap-10 md:grid-cols-3 md:gap-12">
 			<Logo variant="full" onDark class="-mt-6 -ml-4 h-28" />
@@ -36,29 +37,28 @@
 		</div>
 
 		<div
-			class="border-neutral-content/20 flex flex-col gap-4 border-t pt-5 text-sm sm:flex-row sm:items-center sm:justify-between"
+			class="border-base-content/20 flex flex-col gap-4 border-t pt-5 text-sm sm:flex-row sm:items-center sm:justify-between"
 		>
-			<p class="text-neutral-content/70">
+			<p class="text-base-content/70">
 				Deutsche Model United Nations e. V. |
 				<a href="https://dmun.de/legal#imprint" class="link link-hover">{m.imprint()}</a> |
 				<a href="https://dmun.de/legal#privacy" class="link link-hover">{m.privacy()}</a>
 			</p>
 			<div class="flex items-center gap-2">
-				<div class="join" role="group" aria-label={m.language()}>
+				<div class="join" role="radiogroup" aria-label={m.language()}>
 					{#each locales as locale (locale)}
-						<button
-							class={[
-								'btn btn-xs join-item btn-ghost text-neutral-content',
-								getLocale() === locale && 'btn-active'
-							]}
-							onclick={() => setLocale(locale)}
-						>
-							{locale.toUpperCase()}
-						</button>
+						<input
+							type="radio"
+							name="locale"
+							class="btn btn-xs join-item"
+							aria-label={locale.toUpperCase()}
+							checked={getLocale() === locale}
+							onchange={() => setLocale(locale)}
+						/>
 					{/each}
 				</div>
 				<button
-					class="btn btn-ghost btn-xs btn-square text-neutral-content"
+					class="btn btn-xs btn-square"
 					onclick={() => (theme = toggleTheme())}
 					title={m.theme()}
 					aria-label={m.theme()}

@@ -16,6 +16,11 @@ const row = (overrides: Partial<MediaRow> = {}) =>
 				variant: 'large',
 				key: storageKeys.derivative('abcdefghijklmnop', 'large', 'webp'),
 				public: true
+			},
+			{
+				variant: 'original',
+				key: storageKeys.watermarkedOriginal('abcdefghijklmnop'),
+				public: false
 			}
 		],
 		...overrides
@@ -43,14 +48,29 @@ describe('resolveDownload', () => {
 			ok: false,
 			status: 403
 		});
-		expect(resolveDownload(row(), { ...team, variant: 'original' })).toMatchObject({
-			bucket: 'originals',
-			key: 'media/abcdefghijklmnop/original/a.jpg',
-			filename: 'generalversammlung-im-plenarsaal-abcdefgh-original.jpg'
-		});
 		expect(resolveDownload(row(), { ...team, variant: 'large', clean: true })).toMatchObject({
 			bucket: 'originals',
-			key: 'media/abcdefghijklmnop/clean/large.webp'
+			key: 'media/abcdefghijklmnop/clean/large.webp',
+			filename: 'generalversammlung-im-plenarsaal-abcdefgh-large-clean.webp'
+		});
+	});
+
+	it('gives the team a watermarked original unless they ask for the clean upload', () => {
+		expect(resolveDownload(row(), { ...team, variant: 'original' })).toEqual({
+			ok: true,
+			bucket: 'originals',
+			key: 'media/abcdefghijklmnop/original-watermarked.jpg',
+			filename: 'generalversammlung-im-plenarsaal-abcdefgh-original.jpg'
+		});
+		expect(resolveDownload(row(), { ...team, variant: 'original', clean: true })).toEqual({
+			ok: true,
+			bucket: 'originals',
+			key: 'media/abcdefghijklmnop/original/a.jpg',
+			filename: 'generalversammlung-im-plenarsaal-abcdefgh-original-clean.jpg'
+		});
+		expect(resolveDownload(row({ derivatives: [] }), { ...team, variant: 'original' })).toEqual({
+			ok: false,
+			status: 404
 		});
 	});
 

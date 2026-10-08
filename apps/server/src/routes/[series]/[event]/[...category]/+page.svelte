@@ -118,16 +118,14 @@
 				{@const href = categoryHref(event, [...chipBase, chip.slug])}
 				<a
 					{href}
-					class={[
-						'bg-base-200 text-base-content flex flex-none items-center gap-2.5 py-1.5 pr-3 text-sm',
-						chip.cover ? 'pl-1.5' : 'pl-3',
-						chip.slug === current.slug && 'font-bold'
-					]}
+					class={['btn flex-none', chip.slug === current.slug && 'btn-active']}
+					aria-current={chip.slug === current.slug ? 'page' : undefined}
 				>
 					{#if chip.cover}
-						<img src={chip.cover.thumbUrl} alt="" class="size-9 object-cover" />
+						<img src={chip.cover.thumbUrl} alt="" class="-ml-2 size-8 object-cover" />
 					{/if}
-					{chip.name} · {chip.photoCount}
+					{chip.name}
+					<span class="badge badge-sm">{chip.photoCount}</span>
 				</a>
 			{/each}
 		</nav>

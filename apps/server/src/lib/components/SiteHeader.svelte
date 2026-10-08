@@ -59,7 +59,7 @@
 	</nav>
 
 	<div class="dropdown dropdown-end sm:hidden">
-		<div tabindex="0" role="button" class="btn btn-ghost btn-sm px-0 font-bold">
+		<div tabindex="0" role="button" class="btn btn-ghost btn-sm">
 			<ListIcon size={20} weight="duotone" />
 			{m.menu()}
 		</div>

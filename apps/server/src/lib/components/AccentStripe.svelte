@@ -1,5 +1,6 @@
 <script lang="ts">
-	// The Akzentstreifen, the one rounded shape in the DMUN corporate design. White on dark grounds.
+	// The Akzentstreifen, the one rounded shape in the DMUN corporate design. White on dark grounds,
+	// which carry `data-theme="dark"`, so base-content is white there.
 	interface Props {
 		onDark?: boolean;
 		vertical?: boolean;
@@ -13,7 +14,7 @@
 <div
 	class={[
 		'shrink-0 rounded-full',
-		onDark ? 'bg-neutral-content' : 'bg-accent',
+		onDark ? 'bg-base-content' : 'bg-accent',
 		vertical ? 'w-2 self-stretch' : ['h-2', className || 'w-16'],
 		vertical && className
 	]}

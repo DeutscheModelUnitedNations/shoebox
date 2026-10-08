@@ -94,7 +94,7 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 
 - Uploads go browser → S3 via presigned `PUT`, the server never streams originals.
 - Derivatives live in a public bucket behind `PUBLIC_MEDIA_BASE_URL`, originals and team-private items are served via short-lived presigned `GET`s.
-- Public `medium`/`large` derivatives are watermarked (`apps/processor/src/watermark.ts`, white DMUN logo bottom-right). Watermark-free copies exist only in the private originals bucket under `storageKeys.cleanDerivative` and are for team members.
+- Every download is watermarked by default (`apps/processor/src/watermark.ts`, white DMUN logo bottom-right): public `medium`/`large` derivatives, and a private full-resolution `storageKeys.watermarkedOriginal` for team members. Watermark-free files (`storageKeys.cleanDerivative`, the original upload) live only in the private bucket and are served to team members who tick "without watermark" (`clean=1`).
 - Team and admin status come from email/domain whitelists only, no OIDC role claims.
 - The queue is our own table, not pg-boss. The processor is a separate image on the Bun runtime.
 - No urql graphcache/offline mode. Server load functions query the database directly.

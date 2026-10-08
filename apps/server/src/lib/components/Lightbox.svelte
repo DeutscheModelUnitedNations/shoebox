@@ -55,22 +55,22 @@
 <svelte:window onkeydown={onKeydown} />
 
 {#snippet step(href: string | undefined, label: string, forward: boolean)}
-	{#if href}
-		<a
-			{href}
-			class={['btn btn-ghost text-neutral-content px-0', forward && 'flex-row-reverse']}
-			data-sveltekit-replacestate
-			data-sveltekit-noscroll
-		>
-			{#if forward}
-				<CaretRightIcon size={20} weight="duotone" />
-			{:else}
-				<CaretLeftIcon size={20} weight="duotone" />
-			{/if}
+	{#snippet content()}
+		{#if forward}
 			<span class="hidden sm:inline">{label}</span>
+			<CaretRightIcon size={20} weight="duotone" />
+		{:else}
+			<CaretLeftIcon size={20} weight="duotone" />
+			<span class="hidden sm:inline">{label}</span>
+		{/if}
+	{/snippet}
+	<!-- Always rendered, disabled at either end of the series -->
+	{#if href}
+		<a {href} class="btn" aria-label={label} data-sveltekit-replacestate data-sveltekit-noscroll>
+			{@render content()}
 		</a>
 	{:else}
-		<span class="w-10"></span>
+		<button class="btn" aria-label={label} disabled>{@render content()}</button>
 	{/if}
 {/snippet}
 
@@ -79,13 +79,13 @@
 		<div
 			class="modal-box grid h-dvh max-h-none w-full max-w-none grid-cols-1 content-start rounded-none p-0 lg:grid-cols-[1fr_24rem] lg:content-stretch lg:overflow-hidden"
 		>
-			<section class="bg-neutral text-neutral-content flex min-w-0 flex-col lg:min-h-0">
+			<!-- The stage stays dark in both themes, so it carries the dark theme itself -->
+			<section
+				data-theme="dark"
+				class="bg-base-100 text-base-content flex min-w-0 flex-col lg:min-h-0"
+			>
 				<div class="flex items-center justify-between px-5 py-4 lg:px-8 lg:py-5">
-					<a
-						href={closeHref}
-						class="btn btn-ghost text-neutral-content px-0"
-						data-sveltekit-noscroll
-					>
+					<a href={closeHref} class="btn btn-sm" data-sveltekit-noscroll>
 						<XIcon size={20} weight="duotone" />
 						{m.close()}
 					</a>
@@ -111,7 +111,9 @@
 				</div>
 			</section>
 
-			<aside class="bg-base-100 flex flex-col gap-6 p-6 lg:overflow-y-auto lg:p-8">
+			<aside
+				class="bg-base-100 border-base-300 flex flex-col gap-6 p-6 lg:overflow-y-auto lg:border-l lg:p-8"
+			>
 				<div class="flex flex-col gap-2.5">
 					<div class="breadcrumbs text-base-content/60 py-0 text-sm">
 						<ul>

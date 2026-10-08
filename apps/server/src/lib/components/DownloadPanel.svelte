@@ -16,10 +16,8 @@
 	const chosen = $derived(
 		available.find((d) => d.variant === selected) ?? available.find((d) => d.variant === 'large')
 	);
-	// Team members may skip the watermark on medium and large, originals never carry one
-	const href = $derived(
-		chosen && `${chosen.href}${isTeam && noWatermark && !chosen.teamOnly ? '&clean=1' : ''}`
-	);
+	// Every size comes watermarked, team members may opt out, the original included
+	const href = $derived(chosen && `${chosen.href}${isTeam && noWatermark ? '&clean=1' : ''}`);
 
 	const variantLabels = {
 		medium: m.variantMedium,
@@ -34,7 +32,10 @@
 
 	const variantLabel = (d: Download) =>
 		variantLabels[d.variant]({ width: formatNumber(Math.max(d.width, d.height)) });
-	const buttonLabel = (d: Download) => buttonLabels[d.variant]({ size: formatBytes(d.bytes) });
+	const buttonLabel = (d: Download) => {
+		const label = buttonLabels[d.variant]({ size: formatBytes(d.bytes) });
+		return isTeam && noWatermark ? `${label} · ${m.withoutWatermark()}` : label;
+	};
 </script>
 
 <section class="border-base-content flex flex-col gap-3 border-t pt-5">

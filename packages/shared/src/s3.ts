@@ -34,5 +34,7 @@ export const storageKeys = {
 		`media/${mediaId}/${variant}.${ext}`,
 	/** Watermark-free copy of a derivative, kept in the private originals bucket. */
 	cleanDerivative: (mediaId: string, variant: string, ext: string) =>
-		`media/${mediaId}/clean/${variant}.${ext}`
+		`media/${mediaId}/clean/${variant}.${ext}`,
+	/** Full-resolution copy with the watermark, the default original download for the team. */
+	watermarkedOriginal: (mediaId: string) => `media/${mediaId}/original-watermarked.jpg`
 };

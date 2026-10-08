@@ -114,6 +114,30 @@ export async function renderVariants(
 	return results;
 }
 
+/** Full-resolution JPEG with the watermark, kept private for team downloads. */
+async function renderWatermarkedOriginal(
+	ctx: HandlerContext,
+	image: Sharp,
+	mediaId: string
+): Promise<DerivativeResult> {
+	const marked = await applyWatermark(image.clone());
+	const { data, info } = await marked
+		.jpeg({ quality: 90, mozjpeg: true })
+		.toBuffer({ resolveWithObject: true });
+	const key = storageKeys.watermarkedOriginal(mediaId);
+	await upload(ctx.s3, ctx.config.S3_BUCKET_ORIGINALS, key, data, 'image/jpeg');
+	return {
+		variant: 'original',
+		key,
+		width: info.width,
+		height: info.height,
+		bytes: info.size,
+		mimeType: 'image/jpeg',
+		watermarked: true,
+		public: false
+	};
+}
+
 export const imageDerivatives: JobHandler<'IMAGE_DERIVATIVES'> = async (ctx, payload) => {
 	const original = await downloadToBuffer(ctx.s3, payload.bucket, payload.key);
 	// `rotate()` without arguments applies the EXIF orientation so derivatives are upright.
@@ -121,11 +145,13 @@ export const imageDerivatives: JobHandler<'IMAGE_DERIVATIVES'> = async (ctx, pay
 	const meta = await image.metadata();
 	const oriented = meta.autoOrient ?? { width: meta.width, height: meta.height };
 
-	const [{ exif, gps }, blurhash, derivatives] = await Promise.all([
+	const [{ exif, gps }, blurhash, variants, watermarkedOriginal] = await Promise.all([
 		extractMetadata(original),
 		blurhashOf(image),
-		renderVariants(ctx, image, payload.mediaId, payload.public)
+		renderVariants(ctx, image, payload.mediaId, payload.public),
+		renderWatermarkedOriginal(ctx, image, payload.mediaId)
 	]);
+	const derivatives = [...variants, watermarkedOriginal];
 
 	const result = {
 		width: oriented.width,
