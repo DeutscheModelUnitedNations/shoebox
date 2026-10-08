@@ -1,0 +1,1 @@
+CREATE INDEX "processing_job_finished_idx" ON "processing_job" ("finished_at");

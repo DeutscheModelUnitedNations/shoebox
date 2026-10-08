@@ -4,6 +4,7 @@
 	import AccentStripe from '$lib/components/AccentStripe.svelte';
 	import { formatDateRange, formatNumber } from '$lib/gallery/format';
 	import { m } from '$lib/paraglide/messages';
+	import QueueStatusLink from '$lib/components/studio/QueueStatusLink.svelte';
 	import ImagesIcon from 'phosphor-svelte/lib/ImagesIcon';
 
 	let { data } = $props();
@@ -18,6 +19,7 @@
 		<AccentStripe />
 		<h1 class="text-5xl leading-none font-extralight">{m.navManage()}</h1>
 		<p class="text-base-content/70 max-w-[66ch] leading-snug">{m.manageIntro()}</p>
+		<QueueStatusLink queue={data.queue} />
 	</div>
 
 	{#if data.events.length === 0}

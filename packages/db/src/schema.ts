@@ -75,7 +75,11 @@ export const processingJob = snakeCase.table(
 		lastError: text(),
 		finishedAt: timestamp({ mode: 'date' })
 	},
-	(t) => [index('processing_job_claim_idx').on(t.status, t.runAt)]
+	(t) => [
+		index('processing_job_claim_idx').on(t.status, t.runAt),
+		/** Throughput and recent failures on the queue page */
+		index('processing_job_finished_idx').on(t.finishedAt)
+	]
 );
 
 export const seriesKind = pgEnum('series_kind', ['CONFERENCE', 'ASSOCIATION']);
