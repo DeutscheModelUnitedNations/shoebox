@@ -6,7 +6,7 @@
 
 	let {
 		photos,
-		class: className = 'columns-2 gap-2.5 lg:columns-3 lg:gap-4'
+		class: className = 'columns-2 gap-2.5 md:columns-3 lg:gap-4 xl:columns-4 2xl:columns-5'
 	}: {
 		photos: Photo[];
 		class?: string;

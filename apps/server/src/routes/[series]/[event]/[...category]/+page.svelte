@@ -82,7 +82,7 @@
 	{/each}
 {/snippet}
 
-<div class="lg:grid lg:min-h-225 lg:grid-cols-[20rem_1fr]">
+<div class="flex-1 lg:grid lg:min-h-225 lg:grid-cols-[20rem_1fr]">
 	<aside class="bg-base-200 hidden flex-col gap-6 px-8 py-10 lg:flex">
 		{@render crumbs()}
 		<div class="flex flex-col gap-3">
