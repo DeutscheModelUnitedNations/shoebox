@@ -77,7 +77,6 @@
 			sizes="(min-width: 1280px) 15vw, (min-width: 640px) 30vw, 50vw"
 			alt={media.title}
 			loading="lazy"
-			draggable="false"
 			class="size-full object-cover"
 			wrapperClass="size-full"
 		/>

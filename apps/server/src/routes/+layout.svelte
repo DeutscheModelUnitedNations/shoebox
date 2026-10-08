@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
 	import SiteHeader from '$lib/components/SiteHeader.svelte';
+	import { blockPhotoDrag } from '$lib/imageDrag';
 	import { initialSetTheme } from '$lib/utils/theme.svelte';
 	import { m } from '$lib/paraglide/messages';
 
@@ -17,6 +18,8 @@
 		return () => media.removeEventListener('change', onChange);
 	});
 </script>
+
+<svelte:window ondragstart={blockPhotoDrag} />
 
 <svelte:head>
 	<title>{m.appName()}</title>

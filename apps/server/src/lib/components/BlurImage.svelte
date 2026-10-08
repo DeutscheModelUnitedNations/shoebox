@@ -14,6 +14,9 @@
 	 * Server-rendered images start blurred. Images created or switched on the client (lightbox,
 	 * preview, client navigation) first show as they are: cached ones appear instantly, the
 	 * others switch to the blur after CACHE_GRACE_MS and de-blur once loaded.
+	 *
+	 * Photos cannot be dragged out or saved through the context menu (or the iOS long-press
+	 * menu). That only deters casual copying, downloads go through the watermarked variants.
 	 */
 	import { onMount, untrack } from 'svelte';
 	import type { ClassValue, HTMLImgAttributes } from 'svelte/elements';
@@ -84,7 +87,9 @@
 		bind:this={img}
 		{src}
 		{...rest}
-		class={[className, imageClass[phase]]}
+		class={[className, imageClass[phase], 'select-none [-webkit-touch-callout:none]']}
+		draggable="false"
+		oncontextmenu={(event) => event.preventDefault()}
 		onload={settle}
 		onerror={settle}
 		data-blur-image
