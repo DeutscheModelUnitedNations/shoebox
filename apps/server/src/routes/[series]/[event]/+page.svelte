@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import AccentStripe from '$lib/components/AccentStripe.svelte';
@@ -22,13 +22,15 @@
 
 {#if event.hero}
 	<div class="h-64 overflow-hidden sm:h-80 lg:h-110">
-		<img
+		<BlurImage
 			src={event.hero.url}
-			{@attach blurhash(event.hero.blurhash, event.hero)}
+			placeholder={event.hero.placeholder}
+			position="50% 40%"
 			alt={event.hero.alt}
 			class="size-full object-cover object-[50%_40%]"
 			width={event.hero.width}
 			height={event.hero.height}
+			wrapperClass="size-full"
 		/>
 	</div>
 {/if}

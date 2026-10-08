@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { formatDateRange } from '$lib/gallery/format';
 	import { eventHref } from '$lib/gallery/links';
 	import type { EventSummary } from '$lib/gallery/types';
@@ -27,14 +27,15 @@
 >
 	<div class="aspect-3/2 overflow-hidden">
 		{#if event.cover}
-			<img
+			<BlurImage
 				src={event.cover.thumbUrl}
-				{@attach blurhash(event.cover.blurhash, event.cover)}
+				placeholder={event.cover.placeholder}
 				alt=""
 				loading="lazy"
 				class="size-full object-cover"
 				width={event.cover.width}
 				height={event.cover.height}
+				wrapperClass="size-full"
 			/>
 		{:else}
 			<LeafWatermark />

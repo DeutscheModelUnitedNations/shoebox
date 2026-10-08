@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { categoryHref } from '$lib/gallery/links';
 	import type { EventDetail } from '$lib/gallery/types';
 	import { m } from '$lib/paraglide/messages';
@@ -19,14 +19,15 @@
 				class="relative block aspect-3/2 overflow-hidden transition-opacity hover:opacity-80"
 			>
 				{#if category.cover}
-					<img
+					<BlurImage
 						src={category.cover.thumbUrl}
-						{@attach blurhash(category.cover.blurhash, category.cover)}
+						placeholder={category.cover.placeholder}
 						alt=""
 						loading="lazy"
 						class="size-full object-cover"
 						width={category.cover.width}
 						height={category.cover.height}
+						wrapperClass="size-full"
 					/>
 				{:else}
 					<LeafWatermark />

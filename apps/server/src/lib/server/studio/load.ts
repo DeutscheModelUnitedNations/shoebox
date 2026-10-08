@@ -18,6 +18,7 @@ import type { DateRange } from '$lib/gallery/types';
 import { derivativeUrl } from '$lib/server/gallery/load';
 import type { DuplicatePair, StudioCategory, StudioEvent, StudioMedia } from '$lib/studio/types';
 import { fullName } from '$lib/studio/people';
+import { placeholderUrl } from '$lib/server/placeholder';
 
 type MediaRow = typeof schema.media.$inferSelect;
 type EventRow = typeof schema.event.$inferSelect;
@@ -52,7 +53,7 @@ export async function toStudioMedia(
 		status: row.status,
 		thumbUrl,
 		mediumUrl,
-		blurhash: row.blurhash,
+		placeholder: placeholderUrl(row.blurhash, row),
 		largeUrl,
 		width: row.width,
 		height: row.height,

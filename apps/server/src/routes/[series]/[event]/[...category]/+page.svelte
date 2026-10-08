@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import AccentStripe from '$lib/components/AccentStripe.svelte';
@@ -123,11 +123,12 @@
 					aria-current={chip.slug === current.slug ? 'page' : undefined}
 				>
 					{#if chip.cover}
-						<img
+						<BlurImage
 							src={chip.cover.thumbUrl}
 							alt=""
-							class="-ml-2 size-8 object-cover"
-							{@attach blurhash(chip.cover.blurhash, chip.cover)}
+							class="size-full object-cover"
+							placeholder={chip.cover.placeholder}
+							wrapperClass="-ml-2 size-8 shrink-0"
 						/>
 					{/if}
 					{chip.name}

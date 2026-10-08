@@ -22,7 +22,7 @@ function photos(count: number, visibility: Visibility = 'PUBLIC'): Photo[] {
 		takenAt: '2026-03-14T09:00:00Z',
 		visibility,
 		thumbUrl: '',
-		blurhash: null,
+		placeholder: null,
 		url: '',
 		width: 1200,
 		height: 800,

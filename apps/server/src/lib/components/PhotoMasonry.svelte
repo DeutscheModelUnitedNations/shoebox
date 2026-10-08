@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { page } from '$app/state';
 	import { withPhoto } from '$lib/gallery/links';
 	import type { Photo } from '$lib/gallery/types';
@@ -21,9 +21,9 @@
 			class="mb-2.5 block break-inside-avoid transition-opacity hover:opacity-80 lg:mb-4"
 			data-sveltekit-noscroll
 		>
-			<img
+			<BlurImage
 				src={photo.thumbUrl}
-				{@attach blurhash(photo.blurhash, photo)}
+				placeholder={photo.placeholder}
 				alt={photo.alt}
 				loading="lazy"
 				width={photo.width}

@@ -11,7 +11,7 @@ const media = (id: string, fields: Partial<StudioMedia> = {}): StudioMedia => ({
 	status: 'READY',
 	thumbUrl: null,
 	mediumUrl: null,
-	blurhash: null,
+	placeholder: null,
 	largeUrl: null,
 	width: null,
 	height: null,

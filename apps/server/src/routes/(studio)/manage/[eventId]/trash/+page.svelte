@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { mutate } from '$lib/api/mutate';
 	import { formatDate } from '$lib/gallery/format';
@@ -77,11 +77,12 @@
 				<label class="flex cursor-pointer flex-col gap-2">
 					<div class="bg-base-200 relative aspect-square overflow-hidden">
 						{#if media.thumbUrl}
-							<img
+							<BlurImage
 								src={media.thumbUrl}
-								{@attach blurhash(media.blurhash, media)}
+								placeholder={media.placeholder}
 								alt={media.title}
-								class="size-full object-cover opacity-70"
+								class="size-full object-cover"
+								wrapperClass="size-full opacity-70"
 							/>
 						{/if}
 						<input

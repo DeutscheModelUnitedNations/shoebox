@@ -26,8 +26,8 @@ export interface StudioMedia {
 	thumbUrl: string | null;
 	/** Medium and large prefer the watermark-free copies, the studio is team only */
 	mediumUrl: string | null;
-	/** Placeholder while the image loads */
-	blurhash: string | null;
+	/** Blurhash as PNG data URL, shown while the image loads */
+	placeholder: string | null;
 	largeUrl: string | null;
 	width: number | null;
 	height: number | null;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { formatBytes, formatDate, formatNumber } from '$lib/gallery/format';
 	import { m } from '$lib/paraglide/messages';
 	import type { StudioMedia } from '$lib/studio/types';
@@ -60,11 +60,15 @@
 	>
 		<div class="bg-neutral relative flex min-h-64 items-center justify-center">
 			{#if media.largeUrl}
-				<img
+				<BlurImage
 					src={media.largeUrl}
-					{@attach blurhash(media.blurhash, media)}
+					placeholder={media.placeholder}
+					fit="contain"
 					alt={media.title}
-					class="max-h-[60dvh] w-full object-contain lg:max-h-[92dvh]"
+					class="h-auto max-h-[60dvh] w-full object-contain lg:max-h-[92dvh]"
+					wrapperClass="w-full"
+					width={media.width ?? undefined}
+					height={media.height ?? undefined}
 				/>
 			{:else}
 				<p class="text-neutral-content/70 p-8">{m.manageProcessing()}</p>

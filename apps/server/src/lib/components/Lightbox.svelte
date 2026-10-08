@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	/* eslint-disable svelte/no-navigation-without-resolve -- every link is the current, already resolved page.url with ?photo= swapped */
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -95,13 +95,15 @@
 
 				<div class="flex min-h-0 flex-1 items-center justify-center px-5 py-2 lg:px-8 lg:py-0">
 					{#key current.id}
-						<img
+						<BlurImage
 							src={current.url}
-							{@attach blurhash(current.blurhash, current)}
+							placeholder={current.placeholder}
+							fit="contain"
 							alt={current.alt}
 							width={current.width}
 							height={current.height}
-							class="max-h-[70dvh] max-w-full object-contain lg:max-h-full"
+							class="size-full object-contain"
+							wrapperClass="h-[70dvh] w-full lg:h-full"
 						/>
 					{/key}
 				</div>

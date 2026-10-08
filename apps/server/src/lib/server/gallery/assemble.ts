@@ -6,6 +6,7 @@ import { storageKeys, type DerivativeResult, type DownloadSettings } from '@shoe
 import type { schema } from '@shoebox/db';
 import type { Download, Photo } from '$lib/gallery/types';
 import type { RawCategory, RawEvent, RawSeries } from './tree';
+import { placeholderUrl } from '$lib/server/placeholder';
 
 export type MediaRow = typeof schema.media.$inferSelect;
 export type CategoryRow = typeof schema.category.$inferSelect;
@@ -83,7 +84,7 @@ export async function toPhoto(
 		takenAt: (row.takenAt ?? row.createdAt).toISOString(),
 		visibility: row.visibility,
 		thumbUrl,
-		blurhash: row.blurhash,
+		placeholder: placeholderUrl(row.blurhash, shown.large),
 		url,
 		width: shown.large.width,
 		height: shown.large.height,

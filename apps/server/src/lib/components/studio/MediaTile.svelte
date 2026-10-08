@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { blurhash } from '$lib/blurhash';
+	import BlurImage from '$lib/components/BlurImage.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { StudioMedia } from '$lib/studio/types';
 	import MediaBadges from './MediaBadges.svelte';
@@ -70,15 +70,16 @@
 	onkeydown={keydown}
 >
 	{#if media.thumbUrl}
-		<img
+		<BlurImage
 			src={media.thumbUrl}
-			{@attach blurhash(media.blurhash, media)}
+			placeholder={media.placeholder}
 			srcset={media.mediumUrl ? `${media.thumbUrl} 320w, ${media.mediumUrl} 800w` : undefined}
 			sizes="(min-width: 1280px) 15vw, (min-width: 640px) 30vw, 50vw"
 			alt={media.title}
 			loading="lazy"
 			draggable="false"
 			class="size-full object-cover"
+			wrapperClass="size-full"
 		/>
 	{:else}
 		<div class="text-base-content/60 grid size-full place-items-center p-3 text-center text-xs">
