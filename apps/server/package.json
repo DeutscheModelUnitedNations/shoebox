@@ -20,6 +20,7 @@
 		"blurhash": "^2.0.5",
 		"drizzle-kit": "1.0.0-rc.5-ab785fc",
 		"drizzle-orm": "1.0.0-rc.5-ab785fc",
+		"lib-address": "^0.7.0",
 		"pg": "^8.23.0"
 	},
 	"devDependencies": {

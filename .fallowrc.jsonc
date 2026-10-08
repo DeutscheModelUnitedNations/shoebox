@@ -9,8 +9,10 @@
 	// The rumble handlers import the schema builder, which reloads them lazily in dev. That
 	// on-demand edge is not a real cycle.
 	"circularDependencies": { "ignoreLazyImports": true },
-	// Imported only by the generated rumble client, which ignorePatterns excludes.
-	"ignoreDependencies": ["@urql/exchange-graphcache"],
+	// @urql/exchange-graphcache: imported only by the generated rumble client, which
+	// ignorePatterns excludes. lib-address: rumble loads it via createRequire at runtime, so the
+	// bundle cannot inline it and the release image needs it as a real dependency.
+	"ignoreDependencies": ["@urql/exchange-graphcache", "lib-address"],
 	"rules": {
 		// The SvelteKit/Vite build bundles all server app code, so frontend packages belong in
 		// devDependencies on purpose. Only what the release image still requires at runtime is a
