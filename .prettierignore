@@ -1,0 +1,13 @@
+# Package managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+
+# Generated
+apps/server/schema.graphql
+apps/server/src/lib/api/rumbleClient/**
+apps/server/src/lib/paraglide/**
+packages/db/drizzle/**
+.claude/**
+apps/server/project.inlang/cache/**

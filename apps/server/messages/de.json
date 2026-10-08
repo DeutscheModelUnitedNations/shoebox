@@ -1,0 +1,21 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"appName": "Shoebox",
+	"backboneNotice": "Das ist das Grundgerüst des Projekts. Die Galerieseiten kommen mit dem Design.",
+	"healthDatabase": "Datenbank",
+	"healthFailing": "Nicht erreichbar",
+	"healthOk": "Verbunden",
+	"healthQueue": "Verarbeitungswarteschlange",
+	"healthQueueStats": "{pending} wartend, {running} laufend, {failed} fehlgeschlagen",
+	"healthStorage": "Objektspeicher",
+	"healthTitle": "Systemstatus",
+	"language": "Sprache",
+	"login": "Anmelden",
+	"logout": "Abmelden",
+	"notLoggedIn": "Du bist als Besucher unterwegs.",
+	"roleAdmin": "Admin",
+	"roleTeam": "Team",
+	"roleUser": "Angemeldet",
+	"tagline": "Die Fotogalerie für Model-United-Nations-Konferenzen von DMUN e.V.",
+	"theme": "Design"
+}

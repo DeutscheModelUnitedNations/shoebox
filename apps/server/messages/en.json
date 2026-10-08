@@ -1,0 +1,21 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"appName": "Shoebox",
+	"backboneNotice": "This is the project backbone. Gallery pages arrive with the design.",
+	"healthDatabase": "Database",
+	"healthFailing": "Unreachable",
+	"healthOk": "Connected",
+	"healthQueue": "Processing queue",
+	"healthQueueStats": "{pending} pending, {running} running, {failed} failed",
+	"healthStorage": "Object storage",
+	"healthTitle": "System status",
+	"language": "Language",
+	"login": "Log in",
+	"logout": "Log out",
+	"notLoggedIn": "You are browsing as a visitor.",
+	"roleAdmin": "Admin",
+	"roleTeam": "Team",
+	"roleUser": "Signed in",
+	"tagline": "The photo gallery for Model United Nations conferences by DMUN e.V.",
+	"theme": "Theme"
+}

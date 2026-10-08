@@ -1,0 +1,21 @@
+# Dependencies are installed inside the image
+node_modules
+**/node_modules
+
+# Build output and generated files
+build
+**/build
+.svelte-kit
+**/.svelte-kit
+apps/server/src/lib/paraglide
+
+# Local state
+.env
+.env.*
+!.env.example
+.git
+.claude
+.lazyi18n
+.DS_Store
+garage
+scripts/dev

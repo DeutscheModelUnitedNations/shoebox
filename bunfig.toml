@@ -1,0 +1,4 @@
+[install]
+# One hoisted node_modules at the root, like a classic npm workspace. Keeps `bunx` and the
+# Docker images simple and lets root-level tooling (eslint, prettier) resolve svelte & co.
+linker = "hoisted"

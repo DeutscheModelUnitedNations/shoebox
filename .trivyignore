@@ -1,0 +1,2 @@
+# Trivy ignore file
+# Add CVE IDs here to ignore specific vulnerabilities, each with a one-line reason.

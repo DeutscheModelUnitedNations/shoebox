@@ -1,0 +1,53 @@
+# Local development stack: Postgres and a single-node Garage (S3-compatible object store).
+# Started by `bun run dev` (or `bun run dev:docker` on its own).
+#
+# Garage bootstraps itself in single-node mode and creates the originals bucket plus the dev
+# access key from the GARAGE_DEFAULT_* variables. The second bucket (derivatives, public via
+# the web endpoint) and CORS rules are created by `scripts/dev/bootstrap-s3.ts`, which runs
+# as part of `bun run dev` as well. Both steps are idempotent.
+services:
+  postgres:
+    image: postgres:17
+    container_name: shoebox-dev-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shoebox
+    ports:
+      - 5434:5432
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -d shoebox -U postgres']
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - shoebox-dev-postgres:/var/lib/postgresql
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    container_name: shoebox-dev-garage
+    command: ['/garage', 'server', '--single-node', '--default-bucket']
+    environment:
+      # Mirror the values in .env.example (S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY / S3_BUCKET_ORIGINALS).
+      GARAGE_DEFAULT_ACCESS_KEY: GK5h0eb0xdev000000000000000
+      GARAGE_DEFAULT_SECRET_KEY: 5h0eb0xdev5h0eb0xdev5h0eb0xdev5h0eb0xdev5h0eb0xdev5h0eb0xdev0000
+      GARAGE_DEFAULT_BUCKET: shoebox-originals
+    ports:
+      - 3900:3900 # S3 API
+      - 3902:3902 # Web endpoint (public derivatives, vhost style: <bucket>.web.localhost)
+      - 3903:3903 # Admin API
+    healthcheck:
+      # The image is distroless, `garage status` is the only probe available.
+      test: ['CMD', '/garage', 'status']
+      start_period: 10s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - shoebox-dev-garage:/var/lib/garage
+
+volumes:
+  shoebox-dev-postgres:
+  shoebox-dev-garage:

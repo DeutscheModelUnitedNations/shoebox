@@ -1,0 +1,32 @@
+{
+	"name": "@shoebox/db",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./schema": "./src/schema.ts",
+		"./queue": "./src/queue.ts",
+		"./listen": "./src/listen.ts"
+	},
+	"scripts": {
+		"generate": "drizzle-kit generate",
+		"migrate": "drizzle-kit migrate",
+		"push": "drizzle-kit push",
+		"studio": "drizzle-kit studio",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@shoebox/shared": "workspace:*",
+		"drizzle-kit": "1.0.0-rc.5-ab785fc",
+		"drizzle-orm": "1.0.0-rc.5-ab785fc",
+		"pg": "^8.23.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"@types/pg": "^8.23.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.11"
+	}
+}

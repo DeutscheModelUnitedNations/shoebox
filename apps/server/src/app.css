@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+@import '@deutschemodelunitednations/corporate-identity/css/fonts';
+@import '@deutschemodelunitednations/corporate-identity/css/shades/dmun';
+@import '@deutschemodelunitednations/corporate-identity/css/theme/dmun-light';
+@import '@deutschemodelunitednations/corporate-identity/css/theme/dmun-dark';
+
+/* No Vollkorn: serif falls back to the Outfit sans stack */
+:root {
+	--font-family-serif: var(--font-family-sans);
+}
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@plugin 'daisyui/index.js' {
+	themes: false;
+}

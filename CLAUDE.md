@@ -1,0 +1,112 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+Shoebox is DMUN's photo and video gallery for Model United Nations conferences. Public visitors browse public media, team members also see team-private media, admins manage everything and can grant per-conference editing rights (for photographers).
+
+**Tech stack**: Bun workspaces monorepo. SvelteKit + Svelte 5 (runes) + TypeScript, PostgreSQL + Drizzle ORM, GraphQL via [Rumble](https://github.com/m1212e/rumble) (Pothos + Yoga, ability based access control), plain urql client, Tailwind CSS v4 + DaisyUI + DMUN corporate identity, Phosphor icons (duotone), Paraglide i18n (en base, de). S3-compatible object storage (Garage in dev). A separate Bun worker (sharp, ffmpeg, blurhash) processes media.
+
+The repository is modelled on [MUNify CHASE](https://github.com/DeutscheModelUnitedNations/munify-chase); when in doubt about a pattern, that is the reference.
+
+## Layout
+
+```
+apps/server      SvelteKit app (Node adapter in production)
+apps/processor   Bun worker, own Docker image
+packages/db      Drizzle schema, relations, migrations, job queue helpers (@shoebox/db)
+packages/shared  nanoid, Zod env schemas, S3 client factory, job contracts (@shoebox/shared)
+scripts/dev      Garage bootstrap (buckets, website access, CORS)
+```
+
+Workspace packages export TypeScript sources directly. Vite bundles them into the server build (`ssr.noExternal`), Bun runs them as is in the processor. There is one hoisted `node_modules` at the root (`bunfig.toml`).
+
+## Common commands
+
+```bash
+bun run dev              # dev server + processor + docker (postgres, garage) + s3 bootstrap
+bun run dev:server       # vite dev only (https://localhost:5173, mock OIDC inside)
+bun run dev:processor    # worker only, watch mode
+bun run dev:docker       # containers only
+
+bun run check            # svelte-check (apps/server)
+bun run typecheck        # tsc for packages/* and apps/processor
+bun run lint             # eslint, whole repo
+bun run format           # prettier, whole repo
+bun run test             # vitest: packages + processor from the root, then apps/server
+bun run fallow:audit     # findings introduced vs. the base branch
+bun run i18n:check       # message keys across locales
+bun run machine-translate
+
+bun run db:generate      # drizzle-kit generate (packages/db/drizzle/<timestamp>_<name>/)
+bun run db:migrate
+bun run db:studio
+bun run db:nuke          # drop dev volumes, recreate, migrate
+bun run build            # production build of the server
+```
+
+Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the shared `.env` where Vite does not do it (processor, drizzle-kit). The server reads the root `.env` through `kit.env.dir` in `svelte.config.js`.
+
+## Architecture
+
+### Server (`apps/server/src`)
+
+- `api/rumble.ts` creates the Rumble instance (`db`, `schema`, `context`). `api/handlers/register.ts` imports every handler and, in dev or during the build, regenerates the typed client into `lib/api/rumbleClient/`.
+- `api/handlers/*.ts` define abilities, object types, queries and mutations per table with the Rumble DSL (`abilityBuilder`, `object`, `query`, `schemaBuilder`, `pubsub`). Custom resolvers must apply `ctx.abilities.<table>.filter(action)` themselves.
+- `api/context.ts` builds the request context: `user` (OIDC claims), `isTeam`, `isAdmin`, `mustBeLoggedIn()`. Role checks live in `api/services/authHelper.ts` (`isTeamEmail`, `isAdminEmail`, `requireTeam`, `requireAdmin`).
+- `api/services/OIDC.ts` wraps `@m1212e/sveltekit-oidc`. `authenticatedRoutes` (`/login`, `/app`, `/admin`) trigger the login flow, every other route is public. Users are upserted on login.
+- `api/services/storage.ts`: S3 client, presigned upload/download URLs, public derivative URLs. `api/services/health.ts`: database, buckets and queue status for `/api/health` and the landing page.
+- `lib/config/{public,private}.ts`: Zod-validated env wrappers. Read config through them, never from `$env` or `process.env` directly.
+- `lib/api/client.ts` exports `urqlClient` for the generated client. No normalized cache, no offline persistence (deliberate, unlike chase).
+- `routes/`: `+page.svelte` is the only page so far. `/login` and `/logout` are server-only redirects, `/api/graphql` is Yoga, `/api/health` is JSON.
+
+### Processor (`apps/processor/src`)
+
+- `index.ts` wires config, db, S3, the `LISTEN` connection, a health server (`/healthz`) and graceful shutdown.
+- `worker.ts` claims jobs up to `PROCESSOR_CONCURRENCY`, sleeps until a `NOTIFY` or the poll interval, recovers stale `RUNNING` jobs.
+- `handlers/`: one handler per job type (`PING`, `IMAGE_DERIVATIVES`, `VIDEO_DERIVATIVES`). Payloads are validated with the Zod schemas from `@shoebox/shared`. Results land in `processing_job.result`.
+
+### Database (`packages/db`)
+
+- `src/schema.ts` is the source of truth. Only `user` and `processing_job` exist yet; domain tables (conference, album, media, conference membership) come with the design.
+- `src/queue.ts`: `enqueueJob`, `claimJob` (`FOR UPDATE SKIP LOCKED`), `completeJob`, `failJob` (exponential backoff), `recoverStaleJobs`, `queueStats`. `src/listen.ts` holds the dedicated `LISTEN` connection.
+- Migrations are generated into `drizzle/` and applied on server start (Dockerfile `CMD`).
+
+## Conventions
+
+- **IDs**: nanoid, 30 chars, no lookalikes (`@shoebox/shared`). OIDC `sub` is the user id.
+- **Database columns**: snake_case via `snakeCase.table`. Timestamps `created_at`, `updated_at` on every table.
+- **i18n**: `apps/server/messages/{en,de}.json`, used as `m.key()` from `$lib/paraglide/messages`. Add English first.
+- **Icons**: `phosphor-svelte`, import per icon from `phosphor-svelte/lib/<Name>Icon`, weight `duotone` by default.
+- **Styling**: Tailwind v4 + DaisyUI (themes off, DMUN themes from the corporate identity package), `data-theme` light/dark.
+- **Storage keys**: decided in `storageKeys` (`@shoebox/shared`), nowhere else.
+- **Jobs**: new job types are added to `processingJobTypes` + `jobPayloadSchemas` in `@shoebox/shared`, then to `handlers/index.ts` in the processor, then a migration for the enum.
+- Prose in docs: no semicolons or em dashes.
+
+## Design decisions (settled, do not reopen without the maintainers)
+
+- Uploads go browser → S3 via presigned `PUT`, the server never streams originals.
+- Derivatives live in a public bucket behind `PUBLIC_MEDIA_BASE_URL`, originals and team-private items are served via short-lived presigned `GET`s.
+- Team and admin status come from email/domain whitelists only, no OIDC role claims.
+- The queue is our own table, not pg-boss. The processor is a separate image on the Bun runtime.
+- No urql graphcache/offline mode. Server load functions query the database directly.
+- Out of scope for now: SFTP ingest, filesystem storage backend, Dokploy deploy hook, PR lint workflow.
+
+## Generated files (do not edit)
+
+- `apps/server/src/lib/api/rumbleClient/` (committed, regenerated by the dev server)
+- `apps/server/src/lib/paraglide/` (gitignored, compiled by the Vite plugin or `bun run i18n:compile`)
+- `packages/db/drizzle/` (migrations, generated by `bun run db:generate`)
+
+## Authentication in development
+
+oidc-mock runs inside `vite dev` (`oidcMock()` plugin). Users and claims are in `apps/server/oidc-mock.yaml`, edits apply live. `admin@dmun.de` is admin via `ADMIN_EMAIL_WHITELIST`, `*@dmun.de` is team via `TEAM_DOMAIN_WHITELIST`, the other users are plain accounts.
+
+## Codebase intelligence (fallow)
+
+`.fallowrc.jsonc` ignores generated output. The pre-commit hook runs `fallow audit --base HEAD` and fails only on findings the commit introduces. CI posts an advisory report on pull requests and never blocks.
+
+## Svelte MCP
+
+The Svelte MCP server (list-sections, get-documentation, svelte-autofixer) is available for Svelte 5 and SvelteKit questions. Use list-sections first, fetch the relevant docs, and run svelte-autofixer on Svelte code before finishing.

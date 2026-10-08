@@ -1,0 +1,65 @@
+# oidc-mock configuration for local development (https://github.com/strehk/oidc-mock)
+#
+# Served by the Vite dev server through the `oidcMock()` plugin in vite.config.ts.
+# Point the app at it with:
+#   PUBLIC_OIDC_AUTHORITY=http://127.0.0.1:8090/oidc/.well-known/openid-configuration
+#
+# Edits to `users`, `clients`, `tokens` and `custom_login` apply without a restart.
+# `host`, `port`, `base_path`, `issuer` and `key_file` need one.
+
+host: 127.0.0.1
+port: 8090
+base_path: /oidc
+
+# No `clients`: any client_id is accepted without a secret.
+
+tokens:
+  access_token_ttl: 1h
+  id_token_ttl: 1h
+  refresh_token_ttl: 30d
+
+# Show the "custom claims" box on the login page.
+custom_login: true
+
+# One button per user on the login page. Roles are not read from claims: team and admin
+# status come from the email whitelists in .env (TEAM_* and ADMIN_*).
+users:
+  - sub: admin
+    label: Admin
+    description: admin@dmun.de · manages everything
+    claims:
+      email: admin@dmun.de
+      family_name: Doe
+      given_name: John
+      preferred_username: admin
+      locale: de
+
+  - sub: team
+    label: Team member
+    description: team@dmun.de · sees team-private media
+    claims:
+      email: team@dmun.de
+      family_name: Doe
+      given_name: Jane
+      preferred_username: team
+      locale: de
+
+  - sub: photographer
+    label: Photographer
+    description: photo@example.com · external, gets per-conference editing rights
+    claims:
+      email: photo@example.com
+      family_name: Lichtbild
+      given_name: Paula
+      preferred_username: photographer
+      locale: de
+
+  - sub: visitor
+    label: Visitor
+    description: visitor@example.com · plain account, public media only
+    claims:
+      email: visitor@example.com
+      family_name: Smith
+      given_name: Sam
+      preferred_username: visitor
+      locale: en

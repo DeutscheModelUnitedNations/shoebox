@@ -1,0 +1,16 @@
+{
+	"$schema": "./node_modules/fallow/schema.json",
+	// Generated output, mirrors the ignores in eslint.config.js and .prettierignore.
+	"ignorePatterns": [
+		"apps/server/src/lib/paraglide/**",
+		"apps/server/src/lib/api/rumbleClient/**",
+		"packages/db/drizzle/**"
+	],
+	"rules": {
+		// The SvelteKit/Vite build bundles all server app code, so frontend packages belong in
+		// devDependencies on purpose. Only what the release image still requires at runtime is a
+		// real dependency, which makes these two rules false positives for this repo.
+		"dev-dependencies-in-production": "off",
+		"test-only-dependencies": "off"
+	}
+}

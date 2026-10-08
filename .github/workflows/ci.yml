@@ -1,0 +1,228 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PARAGLIDE_COMPILE: bun run i18n:compile
+
+jobs:
+  # ============================================
+  # LAYER 1: PARALLEL CI JOBS
+  # ============================================
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - run: bun run format:check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - run: cd apps/server && bun run prepare
+      - run: ${{ env.PARAGLIDE_COMPILE }}
+      - run: bun run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - run: cd apps/server && bun run prepare
+      - run: ${{ env.PARAGLIDE_COMPILE }}
+      - run: bun run test
+
+  i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - run: bun run i18n:check
+      - run: bun run i18n:validate
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          exit-code: 1
+          format: 'table'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          trivyignores: .trivyignore
+          scanners: ${{ github.event_name == 'pull_request' && 'vuln,license' || 'vuln,secret,misconfig,license' }}
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - run: cd apps/server && bun run prepare
+      - run: ${{ env.PARAGLIDE_COMPILE }}
+      - run: bun run check
+      - run: bun run typecheck
+
+  # Codebase intelligence (dead code, duplication, complexity): https://fallow.tools
+  # Advisory only. Findings never fail this job and it is left out of the `needs` list
+  # below, so it can neither block a merge nor hold up an image build.
+  fallow:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-bun
+      - run: cd apps/server && bun run prepare
+      - run: ${{ env.PARAGLIDE_COMPILE }}
+      - name: Analyse
+        run: |
+          set -o pipefail
+          render() {
+            local status=0
+            bunx fallow --score --format "$1" > "$2" || status=$?
+            if [ "$status" -gt 1 ]; then
+              echo "::error::fallow exited with $status"
+              cat "$2"
+              exit 1
+            fi
+          }
+          render pr-comment-github fallow-comment.md
+          render github-summary fallow-summary.md
+          cat fallow-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = require('fs').readFileSync('fallow-comment.md', 'utf8');
+            const marker = '<!-- fallow-id: fallow-results -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            try {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number
+              });
+              const existing = comments.find(
+                (c) => c.user?.type === 'Bot' && c.body?.includes(marker)
+              );
+              if (existing) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              }
+            } catch (error) {
+              if (error.status === 403) {
+                core.warning('No write access to comment on this pull request (expected on forks).');
+              } else {
+                throw error;
+              }
+            }
+
+  build:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: '--max-old-space-size=8192'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bun
+      - run: cd apps/server && bun run prepare
+      - run: ${{ env.PARAGLIDE_COMPILE }}
+      - run: bun run build
+
+  # ============================================
+  # LAYER 2: DOCKER BUILD (push only)
+  # ============================================
+
+  docker-build:
+    if: github.event_name == 'push'
+    needs: [format, lint, test, i18n, security, typecheck]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: server
+            dockerfile: ./apps/server/Dockerfile
+            image: shoebox
+          - name: processor
+            dockerfile: ./apps/processor/Dockerfile
+            image: shoebox-processor
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          flavor: |
+            latest=false
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+            deutschemodelunitednations/${{ matrix.image }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=docker-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=docker-${{ matrix.name }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            SHA=${{ github.sha }}
+
+      - id: split-tags
+        run: echo "fragment=$(echo "${DOCKER_METADATA_OUTPUT_TAGS}" | head -n 1)" >> "$GITHUB_OUTPUT"
+
+      - uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ steps.split-tags.outputs.fragment }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          trivyignores: .trivyignore
+          scanners: 'vuln,secret,misconfig'

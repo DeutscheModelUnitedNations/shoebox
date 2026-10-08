@@ -1,0 +1,17 @@
+{
+	"jsonRecursiveSort": true,
+	"overrides": [
+		{
+			"files": "*.svelte",
+			"options": {
+				"parser": "svelte"
+			}
+		}
+	],
+	"plugins": ["prettier-plugin-tailwindcss", "prettier-plugin-svelte", "prettier-plugin-sort-json"],
+	"printWidth": 100,
+	"singleQuote": true,
+	"tailwindStylesheet": "./apps/server/src/app.css",
+	"trailingComma": "none",
+	"useTabs": true
+}
