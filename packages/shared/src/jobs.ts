@@ -27,11 +27,15 @@ export const jobPayloadSchemas = {
 
 export type JobPayload<T extends ProcessingJobType> = z.infer<(typeof jobPayloadSchemas)[T]>;
 
-/** Variants the processor renders for every photo and every video poster frame. */
+/**
+ * Variants the processor renders for every photo and every video poster frame. Watermarked
+ * variants are public with the DMUN watermark, their clean copy stays in the private bucket
+ * for team downloads.
+ */
 export const imageVariants = [
-	{ name: 'thumb', maxEdge: 320 },
-	{ name: 'medium', maxEdge: 1024 },
-	{ name: 'large', maxEdge: 2048 }
+	{ name: 'thumb', maxEdge: 320, watermark: false },
+	{ name: 'medium', maxEdge: 1024, watermark: true },
+	{ name: 'large', maxEdge: 2048, watermark: true }
 ] as const;
 export type ImageVariantName = (typeof imageVariants)[number]['name'];
 
@@ -41,6 +45,10 @@ export const derivativeResultSchema = z.object({
 	width: z.number(),
 	height: z.number(),
 	bytes: z.number(),
-	mimeType: z.string()
+	mimeType: z.string(),
+	/** Carries the DMUN watermark */
+	watermarked: z.boolean(),
+	/** In the public derivatives bucket. Private copies sit in the originals bucket. */
+	public: z.boolean()
 });
 export type DerivativeResult = z.infer<typeof derivativeResultSchema>;

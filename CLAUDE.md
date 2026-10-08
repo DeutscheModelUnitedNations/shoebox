@@ -17,7 +17,7 @@ apps/server      SvelteKit app (Node adapter in production)
 apps/processor   Bun worker, own Docker image
 packages/db      Drizzle schema, relations, migrations, job queue helpers (@shoebox/db)
 packages/shared  nanoid, Zod env schemas, S3 client factory, job contracts (@shoebox/shared)
-scripts/dev      Garage bootstrap (buckets, website access, CORS)
+scripts/dev      Garage bootstrap (buckets, global alias, website access, CORS)
 ```
 
 Workspace packages export TypeScript sources directly. Vite bundles them into the server build (`ssr.noExternal`), Bun runs them as is in the processor. There is one hoisted `node_modules` at the root (`bunfig.toml`).
@@ -91,6 +91,7 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 
 - Uploads go browser → S3 via presigned `PUT`, the server never streams originals.
 - Derivatives live in a public bucket behind `PUBLIC_MEDIA_BASE_URL`, originals and team-private items are served via short-lived presigned `GET`s.
+- Public `medium`/`large` derivatives are watermarked (`apps/processor/src/watermark.ts`, white DMUN logo bottom-right). Watermark-free copies exist only in the private originals bucket under `storageKeys.cleanDerivative` and are for team members.
 - Team and admin status come from email/domain whitelists only, no OIDC role claims.
 - The queue is our own table, not pg-boss. The processor is a separate image on the Bun runtime.
 - No urql graphcache/offline mode. Server load functions query the database directly.

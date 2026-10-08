@@ -4,8 +4,10 @@
  * Garage itself creates the originals bucket and the access key (single-node mode with
  * GARAGE_DEFAULT_*). This script adds what the S3 API can do with that key:
  *   1. the derivatives bucket
- *   2. website access on it, so derivatives are served anonymously from the web endpoint
- *   3. CORS rules on both buckets, so the browser can PUT presigned uploads and GET derivatives
+ *   2. a global alias for it via the admin API. A bucket created over S3 only gets an alias
+ *      local to the key, and the web endpoint resolves global aliases only
+ *   3. website access on it, so derivatives are served anonymously from the web endpoint
+ *   4. CORS rules on both buckets, so the browser can PUT presigned uploads and GET derivatives
  *
  * Runs as the `s3` task of `bun run dev` and exits once done. Safe to rerun at any time.
  */
@@ -23,6 +25,9 @@ const corsOrigins = (process.env.DEV_CORS_ORIGINS ?? 'https://localhost:5173')
 	.split(',')
 	.map((o) => o.trim())
 	.filter(Boolean);
+
+const garageAdmin = process.env.GARAGE_ADMIN_URL ?? 'http://localhost:3903';
+const garageAdminToken = process.env.GARAGE_ADMIN_TOKEN ?? 'shoebox-dev-admin-token';
 
 const log = (msg: string) => console.log(`[s3] ${msg}`);
 
@@ -47,6 +52,36 @@ async function ensureBucket(bucket: string) {
 		await s3.send(new CreateBucketCommand({ Bucket: bucket }));
 		log(`created bucket ${bucket}`);
 	}
+}
+
+interface GarageBucket {
+	id: string;
+	globalAliases: string[];
+	localAliases: { accessKeyId: string; alias: string }[];
+}
+
+async function garage<T>(path: string, body?: unknown): Promise<T> {
+	const res = await fetch(`${garageAdmin}${path}`, {
+		method: body ? 'POST' : 'GET',
+		headers: { Authorization: `Bearer ${garageAdminToken}`, 'Content-Type': 'application/json' },
+		body: body ? JSON.stringify(body) : undefined
+	});
+	if (!res.ok) throw new Error(`Garage admin ${path}: ${res.status} ${await res.text()}`);
+	return (await res.json()) as T;
+}
+
+async function ensureGlobalAlias(bucket: string) {
+	const buckets = await garage<GarageBucket[]>('/v2/ListBuckets');
+	const found = buckets.find(
+		(b) => b.globalAliases.includes(bucket) || b.localAliases.some((l) => l.alias === bucket)
+	);
+	if (!found) throw new Error(`bucket ${bucket} not found via the admin API`);
+	if (found.globalAliases.includes(bucket)) {
+		log(`global alias ${bucket} exists`);
+		return;
+	}
+	await garage('/v2/AddBucketAlias', { bucketId: found.id, globalAlias: bucket });
+	log(`added global alias ${bucket}`);
 }
 
 async function enableWebsite(bucket: string) {
@@ -82,6 +117,7 @@ async function putCors(bucket: string) {
 await waitForGarage();
 await ensureBucket(env.S3_BUCKET_ORIGINALS);
 await ensureBucket(env.S3_BUCKET_DERIVATIVES);
+await ensureGlobalAlias(env.S3_BUCKET_DERIVATIVES);
 await enableWebsite(env.S3_BUCKET_DERIVATIVES);
 await putCors(env.S3_BUCKET_ORIGINALS);
 await putCors(env.S3_BUCKET_DERIVATIVES);

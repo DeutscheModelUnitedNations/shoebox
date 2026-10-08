@@ -55,7 +55,7 @@ Roles are derived from the email at request time, nothing is stored. There is no
 
 1. The browser asks the server for a presigned `PUT` and uploads the original straight into the private originals bucket.
 2. The server records the media and enqueues a processing job (`packages/db` → `enqueueJob`), which also fires a Postgres `NOTIFY`.
-3. A processor claims the job with `FOR UPDATE SKIP LOCKED`, renders WebP derivatives (`thumb`, `medium`, `large`), a blurhash and EXIF (GPS kept separate) with sharp, or a poster frame with ffmpeg for video, and uploads them to the public derivatives bucket.
+3. A processor claims the job with `FOR UPDATE SKIP LOCKED`, renders WebP derivatives (`thumb`, `medium`, `large`), a blurhash and EXIF (GPS kept separate) with sharp, or a poster frame with ffmpeg for video, and uploads them to the public derivatives bucket. `medium` and `large` carry a subtle white DMUN watermark there, their watermark-free copies go to the private originals bucket (`media/<id>/clean/`) for team downloads.
 4. Failed jobs retry with exponential backoff up to `maxAttempts`, jobs left `RUNNING` by a crashed worker are recovered automatically.
 
 ## Development

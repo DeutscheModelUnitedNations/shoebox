@@ -3,6 +3,7 @@ import exifr from 'exifr';
 import sharp, { type Sharp } from 'sharp';
 import { imageVariants, storageKeys, type DerivativeResult } from '@shoebox/shared';
 import { downloadToBuffer, upload } from '../s3io';
+import { applyWatermark } from '../watermark';
 import type { HandlerContext, JobHandler } from './index';
 
 /** EXIF tags worth keeping. GPS is extracted separately so it can be withheld for public items. */
@@ -41,34 +42,70 @@ export async function blurhashOf(image: Sharp) {
 	return encode(new Uint8ClampedArray(data), info.width, info.height, 4, 3);
 }
 
-/** Renders every configured variant as WebP into the derivatives bucket. */
+function encodeWebp(image: Sharp) {
+	return image.webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
+}
+
+/**
+ * Renders every configured variant as WebP. Watermarked variants go to the public derivatives
+ * bucket with the DMUN watermark and to the private originals bucket without it.
+ */
 export async function renderVariants(
 	ctx: HandlerContext,
 	image: Sharp,
 	mediaId: string
 ): Promise<DerivativeResult[]> {
 	const results: DerivativeResult[] = [];
-	for (const variant of imageVariants) {
-		const { data, info } = await image
-			.clone()
-			.resize({
-				width: variant.maxEdge,
-				height: variant.maxEdge,
-				fit: 'inside',
-				withoutEnlargement: true
-			})
-			.webp({ quality: 82 })
-			.toBuffer({ resolveWithObject: true });
-		const key = storageKeys.derivative(mediaId, variant.name, 'webp');
-		await upload(ctx.s3, ctx.config.S3_BUCKET_DERIVATIVES, key, data, 'image/webp');
+	const store = async (
+		bucket: string,
+		key: string,
+		variant: string,
+		rendered: Awaited<ReturnType<typeof encodeWebp>>,
+		flags: Pick<DerivativeResult, 'watermarked' | 'public'>
+	) => {
+		await upload(ctx.s3, bucket, key, rendered.data, 'image/webp');
 		results.push({
-			variant: variant.name,
+			variant,
 			key,
-			width: info.width,
-			height: info.height,
-			bytes: info.size,
-			mimeType: 'image/webp'
+			width: rendered.info.width,
+			height: rendered.info.height,
+			bytes: rendered.info.size,
+			mimeType: 'image/webp',
+			...flags
 		});
+	};
+
+	for (const variant of imageVariants) {
+		const resized = image.clone().resize({
+			width: variant.maxEdge,
+			height: variant.maxEdge,
+			fit: 'inside',
+			withoutEnlargement: true
+		});
+		const publicKey = storageKeys.derivative(mediaId, variant.name, 'webp');
+		if (!variant.watermark) {
+			const clean = await encodeWebp(resized);
+			await store(ctx.config.S3_BUCKET_DERIVATIVES, publicKey, variant.name, clean, {
+				watermarked: false,
+				public: true
+			});
+			continue;
+		}
+		const [clean, marked] = await Promise.all([
+			encodeWebp(resized.clone()),
+			applyWatermark(resized.clone()).then(encodeWebp)
+		]);
+		await store(ctx.config.S3_BUCKET_DERIVATIVES, publicKey, variant.name, marked, {
+			watermarked: true,
+			public: true
+		});
+		await store(
+			ctx.config.S3_BUCKET_ORIGINALS,
+			storageKeys.cleanDerivative(mediaId, variant.name, 'webp'),
+			variant.name,
+			clean,
+			{ watermarked: false, public: false }
+		);
 	}
 	return results;
 }

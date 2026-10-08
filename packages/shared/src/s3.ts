@@ -31,5 +31,8 @@ export const storageKeys = {
 	original: (mediaId: string, filename: string) => `media/${mediaId}/original/${filename}`,
 	/** Derivatives live next to each other under the media id. */
 	derivative: (mediaId: string, variant: string, ext: string) =>
-		`media/${mediaId}/${variant}.${ext}`
+		`media/${mediaId}/${variant}.${ext}`,
+	/** Watermark-free copy of a derivative, kept in the private originals bucket. */
+	cleanDerivative: (mediaId: string, variant: string, ext: string) =>
+		`media/${mediaId}/clean/${variant}.${ext}`
 };
