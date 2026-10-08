@@ -26,9 +26,13 @@ type CategoryRow = typeof schema.category.$inferSelect;
 /** Media that exists for the manage view: not trashed, upload finished. */
 const live = and(isNull(schema.media.deletedAt), ne(schema.media.status, 'UPLOADING'));
 
+/** The watermark-free copy of a variant where there is one, else the regular derivative. */
 function shownUrl(row: MediaRow, variant: string) {
-	const key = storageKeys.derivative(row.id, variant, 'webp');
-	const derivative = row.derivatives.find((d) => d.key === key);
+	const keys = [
+		storageKeys.cleanDerivative(row.id, variant, 'webp'),
+		storageKeys.derivative(row.id, variant, 'webp')
+	];
+	const derivative = keys.map((k) => row.derivatives.find((d) => d.key === k)).find(Boolean);
 	return derivative ? derivativeUrl(derivative) : null;
 }
 
@@ -36,7 +40,9 @@ export async function toStudioMedia(
 	row: MediaRow,
 	extra: { coverId?: string | null; duplicates?: Set<string> } = {}
 ): Promise<StudioMedia> {
-	const [thumbUrl, largeUrl] = await Promise.all([shownUrl(row, 'thumb'), shownUrl(row, 'large')]);
+	const [thumbUrl, mediumUrl, largeUrl] = await Promise.all(
+		['thumb', 'medium', 'large'].map((variant) => shownUrl(row, variant))
+	);
 	return {
 		id: row.id,
 		title: row.title,
@@ -45,6 +51,7 @@ export async function toStudioMedia(
 		visibility: row.visibility,
 		status: row.status,
 		thumbUrl,
+		mediumUrl,
 		largeUrl,
 		width: row.width,
 		height: row.height,

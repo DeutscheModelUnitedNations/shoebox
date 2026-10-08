@@ -55,7 +55,14 @@
 	let anchor = $state<number | null>(null);
 	// By id, so the preview shows the fresh row after a reload
 	let previewId = $state<string | null>(null);
-	const preview = $derived(data.media.find((media) => media.id === previewId) ?? null);
+	const previewIndex = $derived(data.media.findIndex((media) => media.id === previewId));
+	const preview = $derived(data.media[previewIndex] ?? null);
+
+	/** Steps the preview through the current view, undefined past either end */
+	function stepTo(offset: number) {
+		const next = data.media[previewIndex + offset];
+		return next ? () => (previewId = next.id) : undefined;
+	}
 
 	// Photos that left the view drop out of the selection
 	$effect(() => {
@@ -152,10 +159,15 @@
 			m.manageHighlightsSaved()
 		);
 
-	function escape(e: KeyboardEvent) {
-		if (e.key !== 'Escape') return;
-		if (previewId) previewId = null;
-		else clearSelection();
+	const previewKeys: Record<string, () => (() => void) | undefined> = {
+		Escape: () => () => (previewId = null),
+		ArrowLeft: () => stepTo(-1),
+		ArrowRight: () => stepTo(1)
+	};
+
+	function onKeydown(e: KeyboardEvent) {
+		if (preview) previewKeys[e.key]?.()?.();
+		else if (e.key === 'Escape') clearSelection();
 	}
 </script>
 
@@ -163,7 +175,7 @@
 	<title>{event.name} {event.edition} · {m.navManage()} · {m.appName()}</title>
 </svelte:head>
 
-<svelte:window onkeydown={escape} />
+<svelte:window onkeydown={onKeydown} />
 
 <ManageHeader {event} stats={data.stats} />
 
@@ -247,7 +259,12 @@
 {#if preview}
 	<PreviewModal
 		media={preview}
+		index={previewIndex + 1}
+		total={data.media.length}
+		category={categories.find((c) => c.id === preview.categoryId)?.label ?? m.manageNoCategory()}
 		onClose={() => (previewId = null)}
+		onPrevious={stepTo(-1)}
+		onNext={stepTo(1)}
 		onSetCover={() => setCover(preview.id)}
 		onHighlight={(highlight) => setHighlight([preview.id], highlight)}
 	/>

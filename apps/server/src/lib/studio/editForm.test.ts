@@ -10,6 +10,7 @@ const media = (id: string, fields: Partial<StudioMedia> = {}): StudioMedia => ({
 	visibility: 'PUBLIC',
 	status: 'READY',
 	thumbUrl: null,
+	mediumUrl: null,
 	largeUrl: null,
 	width: null,
 	height: null,

@@ -24,6 +24,8 @@ export interface StudioMedia {
 	status: 'UPLOADING' | 'PENDING' | 'READY' | 'HELD' | 'FAILED';
 	/** Missing while the processor has not rendered it yet */
 	thumbUrl: string | null;
+	/** Medium and large prefer the watermark-free copies, the studio is team only */
+	mediumUrl: string | null;
 	largeUrl: string | null;
 	width: number | null;
 	height: number | null;

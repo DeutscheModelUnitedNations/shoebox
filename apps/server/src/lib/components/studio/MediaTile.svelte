@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 	import type { StudioMedia } from '$lib/studio/types';
+	import MediaBadges from './MediaBadges.svelte';
 
 	interface Props {
 		media: StudioMedia;
@@ -40,23 +41,6 @@
 	}
 </script>
 
-{#snippet badges()}
-	{#if media.isCover}
-		<span class="badge badge-neutral badge-sm uppercase">{m.manageCover()}</span>
-	{/if}
-	{#if media.highlight}
-		<span class="badge badge-primary badge-sm uppercase">{m.manageHighlightBadge()}</span>
-	{/if}
-	{#if media.visibility === 'TEAM'}
-		<span class="badge badge-neutral badge-sm uppercase">{m.manageTeamOnly()}</span>
-	{/if}
-	{#if media.status === 'HELD'}
-		<span class="badge badge-neutral badge-sm uppercase">{m.uploadHeld()}</span>
-	{:else if media.duplicate}
-		<span class="badge badge-ghost badge-sm uppercase">{m.manageDuplicateBadge()}</span>
-	{/if}
-{/snippet}
-
 <div
 	role="button"
 	tabindex="0"
@@ -87,6 +71,8 @@
 	{#if media.thumbUrl}
 		<img
 			src={media.thumbUrl}
+			srcset={media.mediumUrl ? `${media.thumbUrl} 320w, ${media.mediumUrl} 800w` : undefined}
+			sizes="(min-width: 1280px) 15vw, (min-width: 640px) 30vw, 50vw"
 			alt={media.title}
 			loading="lazy"
 			draggable="false"
@@ -108,5 +94,5 @@
 			onToggle(e.shiftKey);
 		}}
 	/>
-	<div class="absolute bottom-2 left-2 flex flex-wrap gap-1">{@render badges()}</div>
+	<div class="absolute bottom-2 left-2 flex flex-wrap gap-1"><MediaBadges {media} /></div>
 </div>
