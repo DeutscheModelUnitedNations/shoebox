@@ -18,7 +18,8 @@ describe('applyWatermark', () => {
 
 		expect(await marked.metadata()).toMatchObject({ width: 1200, height: 800, channels: 3 });
 		expect(await meanOf(marked, { left: 0, top: 0, width: 400, height: 300 })).toBeCloseTo(60, 0);
-		expect(await meanOf(marked, { left: 900, top: 650, width: 300, height: 150 })).toBeGreaterThan(
+		// The long mark is about 230 × 100 px here, Schutzzone included
+		expect(await meanOf(marked, { left: 970, top: 700, width: 230, height: 100 })).toBeGreaterThan(
 			65
 		);
 	});

@@ -83,6 +83,7 @@ export async function toPhoto(
 		takenAt: (row.takenAt ?? row.createdAt).toISOString(),
 		visibility: row.visibility,
 		thumbUrl,
+		blurhash: row.blurhash,
 		url,
 		width: shown.large.width,
 		height: shown.large.height,

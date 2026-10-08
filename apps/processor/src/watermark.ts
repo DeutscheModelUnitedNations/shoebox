@@ -3,12 +3,13 @@ import sharp, { type Sharp } from 'sharp';
 import type { WatermarkPosition, WatermarkSettings } from '@shoebox/shared';
 
 /**
- * The white DMUN Wort-Bild-Marke (dmun-darkmode.svg from cdn.dmun.de). The file carries its
- * own Schutzzone, which doubles as the margin to the image edge.
+ * The long white DMUN Wort-Bild-Marke with the full name (dmun-lang-darkmode.svg from
+ * cdn.dmun.de), the same file the admin settings preview shows. The file carries its own
+ * Schutzzone, which doubles as the margin to the image edge.
  */
 const logo = readFileSync(new URL('../assets/watermark.svg', import.meta.url), 'utf8')
 	// librsvg needs absolute dimensions, the file ships with 100%
-	.replace(/width="100%" height="100%"/, 'width="11221" height="7306"');
+	.replace(/width="100%" height="100%"/, 'width="16588" height="7306"');
 
 /** The visible artwork is roughly this share of the logo file's width, the rest is Schutzzone. */
 const ARTWORK_SHARE = 0.62;
@@ -37,9 +38,9 @@ function escapeXml(text: string) {
 	return text.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** White credit line, sized relative to the logo. */
-function creditSvg(text: string, width: number) {
-	const fontSize = Math.max(10, Math.round(width * 0.075));
+/** White credit line, sized relative to the logo's height. */
+function creditSvg(text: string, width: number, logoHeight: number) {
+	const fontSize = Math.max(10, Math.round(logoHeight * 0.115));
 	const height = Math.round(fontSize * 1.4);
 	return {
 		height,
@@ -59,7 +60,7 @@ async function renderMark(width: number, options: WatermarkOptions) {
 	let mark = logoPng.data;
 	let height = logoPng.info.height;
 	if (options.credit) {
-		const credit = creditSvg(options.credit, width);
+		const credit = creditSvg(options.credit, width, height);
 		// The credit tucks into the logo's bottom Schutzzone
 		const top = Math.round(height * 0.78);
 		height = Math.max(height, top + credit.height);

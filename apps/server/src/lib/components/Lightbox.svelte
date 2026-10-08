@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	/* eslint-disable svelte/no-navigation-without-resolve -- every link is the current, already resolved page.url with ?photo= swapped */
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -96,6 +97,7 @@
 					{#key current.id}
 						<img
 							src={current.url}
+							{@attach blurhash(current.blurhash, current)}
 							alt={current.alt}
 							width={current.width}
 							height={current.height}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { page } from '$app/state';
 	import { withPhoto } from '$lib/gallery/links';
 	import type { Photo } from '$lib/gallery/types';
@@ -22,6 +23,7 @@
 		>
 			<img
 				src={photo.thumbUrl}
+				{@attach blurhash(photo.blurhash, photo)}
 				alt={photo.alt}
 				loading="lazy"
 				width={photo.width}

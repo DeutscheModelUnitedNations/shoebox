@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { invalidateAll } from '$app/navigation';
 	import { mutate } from '$lib/api/mutate';
 	import { formatDate } from '$lib/gallery/format';
@@ -78,6 +79,7 @@
 						{#if media.thumbUrl}
 							<img
 								src={media.thumbUrl}
+								{@attach blurhash(media.blurhash, media)}
 								alt={media.title}
 								class="size-full object-cover opacity-70"
 							/>

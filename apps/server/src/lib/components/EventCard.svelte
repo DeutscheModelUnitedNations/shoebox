@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { formatDateRange } from '$lib/gallery/format';
 	import { eventHref } from '$lib/gallery/links';
 	import type { EventSummary } from '$lib/gallery/types';
@@ -28,6 +29,7 @@
 		{#if event.cover}
 			<img
 				src={event.cover.thumbUrl}
+				{@attach blurhash(event.cover.blurhash, event.cover)}
 				alt=""
 				loading="lazy"
 				class="size-full object-cover"

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import AccentStripe from '$lib/components/AccentStripe.svelte';
@@ -23,6 +24,7 @@
 	<div class="h-64 overflow-hidden sm:h-80 lg:h-110">
 		<img
 			src={event.hero.url}
+			{@attach blurhash(event.hero.blurhash, event.hero)}
 			alt={event.hero.alt}
 			class="size-full object-cover object-[50%_40%]"
 			width={event.hero.width}

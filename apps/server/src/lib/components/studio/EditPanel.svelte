@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { m } from '$lib/paraglide/messages';
 	import type { CategoryOption } from '$lib/studio/categories';
 	import { editInput, formFromSelection, mixed, type EditForm } from '$lib/studio/editForm';
@@ -35,7 +36,12 @@
 	{:else}
 		<div class="flex flex-wrap gap-2">
 			{#each selection.slice(0, 6).filter((s) => s.thumbUrl) as media (media.id)}
-				<img src={media.thumbUrl} alt="" class="h-12 w-16 object-cover" />
+				<img
+					src={media.thumbUrl}
+					alt=""
+					class="h-12 w-16 object-cover"
+					{@attach blurhash(media.blurhash, media)}
+				/>
 			{/each}
 		</div>
 		<label class="fieldset">

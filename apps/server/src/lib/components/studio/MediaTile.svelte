@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { m } from '$lib/paraglide/messages';
 	import type { StudioMedia } from '$lib/studio/types';
 	import MediaBadges from './MediaBadges.svelte';
@@ -71,6 +72,7 @@
 	{#if media.thumbUrl}
 		<img
 			src={media.thumbUrl}
+			{@attach blurhash(media.blurhash, media)}
 			srcset={media.mediumUrl ? `${media.thumbUrl} 320w, ${media.mediumUrl} 800w` : undefined}
 			sizes="(min-width: 1280px) 15vw, (min-width: 640px) 30vw, 50vw"
 			alt={media.title}

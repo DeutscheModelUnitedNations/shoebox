@@ -52,6 +52,7 @@ export async function toStudioMedia(
 		status: row.status,
 		thumbUrl,
 		mediumUrl,
+		blurhash: row.blurhash,
 		largeUrl,
 		width: row.width,
 		height: row.height,

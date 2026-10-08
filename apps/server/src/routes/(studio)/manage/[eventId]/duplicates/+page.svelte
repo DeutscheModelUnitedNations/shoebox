@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { mutate } from '$lib/api/mutate';
@@ -36,7 +37,12 @@
 	<figure class="flex flex-col gap-3">
 		<div class="bg-base-200 aspect-3/2 overflow-hidden">
 			{#if media.largeUrl}
-				<img src={media.largeUrl} alt={media.title} class="size-full object-cover" />
+				<img
+					src={media.largeUrl}
+					alt={media.title}
+					class="size-full object-cover"
+					{@attach blurhash(media.blurhash, media)}
+				/>
 			{:else}
 				<div class="text-base-content/60 grid size-full place-items-center text-sm">
 					{m.manageProcessing()}

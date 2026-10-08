@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { categoryHref } from '$lib/gallery/links';
 	import type { EventDetail } from '$lib/gallery/types';
 	import { m } from '$lib/paraglide/messages';
@@ -20,6 +21,7 @@
 				{#if category.cover}
 					<img
 						src={category.cover.thumbUrl}
+						{@attach blurhash(category.cover.blurhash, category.cover)}
 						alt=""
 						loading="lazy"
 						class="size-full object-cover"

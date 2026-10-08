@@ -30,6 +30,8 @@ export interface Photo {
 	visibility: Visibility;
 	/** Grid variant */
 	thumbUrl: string;
+	/** Placeholder while the image loads */
+	blurhash: string | null;
 	/** Lightbox variant */
 	url: string;
 	width: number;

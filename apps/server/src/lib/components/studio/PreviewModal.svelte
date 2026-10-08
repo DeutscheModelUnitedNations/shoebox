@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { blurhash } from '$lib/blurhash';
 	import { formatBytes, formatDate, formatNumber } from '$lib/gallery/format';
 	import { m } from '$lib/paraglide/messages';
 	import type { StudioMedia } from '$lib/studio/types';
@@ -61,6 +62,7 @@
 			{#if media.largeUrl}
 				<img
 					src={media.largeUrl}
+					{@attach blurhash(media.blurhash, media)}
 					alt={media.title}
 					class="max-h-[60dvh] w-full object-contain lg:max-h-[92dvh]"
 				/>
