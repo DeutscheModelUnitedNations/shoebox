@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 	import type { StudioMedia } from '$lib/studio/types';
+	import ImageSquareIcon from 'phosphor-svelte/lib/ImageSquareIcon';
+	import StarIcon from 'phosphor-svelte/lib/StarIcon';
 	import XIcon from 'phosphor-svelte/lib/XIcon';
 
 	interface Props {
 		media: StudioMedia;
 		onClose: () => void;
+		onSetCover: () => void;
+		onHighlight: (highlight: boolean) => void;
 	}
 
-	let { media, onClose }: Props = $props();
+	let { media, onClose, onSetCover, onHighlight }: Props = $props();
 </script>
 
 <div class="modal modal-open" role="dialog" aria-modal="true" aria-label={media.title}>
@@ -22,7 +26,19 @@
 		{#if media.largeUrl}
 			<img src={media.largeUrl} alt={media.title} class="max-h-[70dvh] w-full object-contain" />
 		{/if}
-		<p class="text-base-content/60 text-sm">{media.filename} · {media.photographer}</p>
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<p class="text-base-content/60 text-sm">{media.filename} · {media.photographer}</p>
+			<div class="flex flex-wrap gap-2">
+				<button class="btn btn-outline btn-sm" onclick={() => onHighlight(!media.highlight)}>
+					<StarIcon size={18} weight={media.highlight ? 'fill' : 'duotone'} />
+					{media.highlight ? m.manageRemoveHighlight() : m.manageAddHighlight()}
+				</button>
+				<button class="btn btn-outline btn-sm" disabled={media.isCover} onclick={onSetCover}>
+					<ImageSquareIcon size={18} weight="duotone" />
+					{media.isCover ? m.manageIsCover() : m.manageSetCover()}
+				</button>
+			</div>
+		</div>
 	</div>
 	<button class="modal-backdrop" onclick={onClose} aria-label={m.close()}></button>
 </div>

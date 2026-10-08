@@ -3,15 +3,17 @@
 	import type { CategoryOption } from '$lib/studio/categories';
 	import { editInput, formFromSelection, mixed, type EditForm } from '$lib/studio/editForm';
 	import type { StudioMedia } from '$lib/studio/types';
+	import FeatureActions from './FeatureActions.svelte';
 
 	interface Props {
 		selection: StudioMedia[];
 		categories: CategoryOption[];
 		onApply: (input: ReturnType<typeof editInput>) => void;
 		onSetCover: () => void;
+		onHighlight: (highlight: boolean) => void;
 	}
 
-	let { selection, categories, onApply, onSetCover }: Props = $props();
+	let { selection, categories, onApply, onSetCover, onHighlight }: Props = $props();
 
 	// Refilled whenever the selection changes, edited freely in between. Bound fields mutate it
 	// deeply, which a writable $derived would not track
@@ -78,8 +80,8 @@
 			<button class="btn btn-primary btn-block" onclick={() => onApply(editInput(form, selection))}>
 				{m.manageApply()}
 			</button>
-			<button class="btn btn-link" onclick={onSetCover}>{m.manageSetCover()}</button>
 		</div>
+		<FeatureActions {selection} {onSetCover} {onHighlight} />
 	{/if}
 	<p class="text-base-content/60 text-sm leading-snug">{m.manageTrashNote()}</p>
 </aside>

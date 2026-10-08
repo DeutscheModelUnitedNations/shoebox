@@ -44,6 +44,9 @@
 	{#if media.isCover}
 		<span class="badge badge-neutral badge-sm uppercase">{m.manageCover()}</span>
 	{/if}
+	{#if media.highlight}
+		<span class="badge badge-primary badge-sm uppercase">{m.manageHighlightBadge()}</span>
+	{/if}
 	{#if media.visibility === 'TEAM'}
 		<span class="badge badge-neutral badge-sm uppercase">{m.manageTeamOnly()}</span>
 	{/if}

@@ -373,6 +373,7 @@ export type Mutation = {
   updateMedia: (p: {
     categoryId?: ID | null | undefined,
     eventId: ID,
+    highlight?: Boolean | null | undefined,
     mediaIds: ID[],
     moveCategory?: Boolean | null | undefined,
     photographer?: String | null | undefined,

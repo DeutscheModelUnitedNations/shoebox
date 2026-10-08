@@ -52,6 +52,7 @@ export async function toStudioMedia(
 		takenAt: row.takenAt?.toISOString() ?? null,
 		categoryId: row.categoryId,
 		isCover: row.id === extra.coverId,
+		highlight: row.highlight,
 		duplicate: extra.duplicates?.has(row.id) ?? false,
 		deletedAt: row.deletedAt?.toISOString() ?? null
 	};
@@ -228,6 +229,7 @@ export async function loadCategories(eventId: string) {
 export type MediaFilter =
 	| { kind: 'all' }
 	| { kind: 'none' }
+	| { kind: 'highlights' }
 	| { kind: 'category'; ids: string[] }
 	| { kind: 'batch'; batch: string };
 
@@ -247,6 +249,7 @@ export async function loadStudioMedia(
 ) {
 	const conditions = [eq(schema.media.eventId, event.id), live];
 	if (filter.kind === 'none') conditions.push(isNull(schema.media.categoryId));
+	if (filter.kind === 'highlights') conditions.push(eq(schema.media.highlight, true));
 	if (filter.kind === 'category') conditions.push(inArray(schema.media.categoryId, filter.ids));
 	if (filter.kind === 'batch') conditions.push(eq(schema.media.uploadBatch, filter.batch));
 	const [rows, duplicates] = await Promise.all([

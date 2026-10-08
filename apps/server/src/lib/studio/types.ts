@@ -31,6 +31,8 @@ export interface StudioMedia {
 	takenAt: string | null;
 	categoryId: string | null;
 	isCover: boolean;
+	/** Shown under "Impressionen" on the conference page */
+	highlight: boolean;
 	/** Part of an open duplicate pair */
 	duplicate: boolean;
 	deletedAt: string | null;

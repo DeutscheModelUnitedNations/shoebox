@@ -8,14 +8,18 @@ import { fullName, type PersonRole } from '$lib/studio/people';
 import type { StudioCategory } from '$lib/studio/types';
 import { loadCategories, subtree, type MediaFilter } from './load';
 
-/** Which photos the manage view shows, from `?batch=`, `?category=` (an id or `none`). */
+const fixedFilters: Record<string, MediaFilter> = {
+	none: { kind: 'none' },
+	highlights: { kind: 'highlights' }
+};
+
+/** Which photos the manage view shows, from `?batch=`, `?category=` (an id, `none` or `highlights`). */
 export function filterFromUrl(url: URL, tree: StudioCategory[]): MediaFilter {
 	const batch = url.searchParams.get('batch');
 	const category = url.searchParams.get('category');
 	if (batch) return { kind: 'batch', batch };
-	if (category === 'none') return { kind: 'none' };
-	if (category) return { kind: 'category', ids: subtree(tree, category) };
-	return { kind: 'all' };
+	if (!category) return { kind: 'all' };
+	return fixedFilters[category] ?? { kind: 'category', ids: subtree(tree, category) };
 }
 
 async function countOf(
@@ -26,19 +30,20 @@ async function countOf(
 	return row?.n ?? 0;
 }
 
-/** Header numbers of the manage view: team-only photos, open duplicates, trash. */
+/** Header numbers of the manage view: team-only photos, highlights, open duplicates, trash. */
 export async function manageStats(eventId: string) {
 	const live = and(
 		eq(schema.media.eventId, eventId),
 		isNull(schema.media.deletedAt),
 		ne(schema.media.status, 'UPLOADING')
 	);
-	const [team, duplicates, trash] = await Promise.all([
+	const [team, highlights, duplicates, trash] = await Promise.all([
 		countOf(schema.media, and(live, eq(schema.media.visibility, 'TEAM'))),
+		countOf(schema.media, and(live, eq(schema.media.highlight, true))),
 		countOf(schema.duplicateCandidate, eq(schema.duplicateCandidate.eventId, eventId)),
 		countOf(schema.media, and(eq(schema.media.eventId, eventId), isNotNull(schema.media.deletedAt)))
 	]);
-	return { team, duplicates, trash };
+	return { team, highlights, duplicates, trash };
 }
 
 const userByEmail = (

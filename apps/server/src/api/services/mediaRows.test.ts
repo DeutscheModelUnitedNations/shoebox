@@ -43,6 +43,7 @@ describe('duplicateFields', () => {
 describe('mediaChangeSet', () => {
 	it('only sets the given fields', () => {
 		expect(mediaChangeSet({})).toEqual({});
+		expect(mediaChangeSet({ highlight: false })).toEqual({ highlight: false });
 		expect(mediaChangeSet({ title: 'T', visibility: 'TEAM' })).toEqual({
 			title: 'T',
 			alt: 'T',

@@ -17,6 +17,7 @@ const media = (id: string, fields: Partial<StudioMedia> = {}): StudioMedia => ({
 	takenAt: null,
 	categoryId: 'gv',
 	isCover: false,
+	highlight: false,
 	duplicate: false,
 	deletedAt: null,
 	...fields

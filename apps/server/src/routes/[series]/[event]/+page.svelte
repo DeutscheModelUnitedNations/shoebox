@@ -70,8 +70,10 @@
 			<dd>{formatDateRange(event.dates)}</dd>
 			<dt class="text-base-content/60">{m.factPhotos()}</dt>
 			<dd>{m.factPhotosValue({ count: event.photoCount, categories: event.categoryCount })}</dd>
-			<dt class="text-base-content/60">{m.factPhotographers()}</dt>
-			<dd>{event.photographers.join(', ')}</dd>
+			{#if event.photographers.length > 0}
+				<dt class="text-base-content/60">{m.factPhotographers()}</dt>
+				<dd>{event.photographers.join(', ')}</dd>
+			{/if}
 			<dt class="text-base-content/60">{m.factRights()}</dt>
 			<dd>{event.rights}</dd>
 		</dl>
@@ -79,7 +81,7 @@
 </section>
 
 {#if event.highlights.length > 0}
-	<section class="mx-auto flex max-w-7xl flex-col gap-6 px-5 pt-12 pb-6 lg:px-12 lg:pt-14">
+	<section class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 pt-12 pb-6 lg:px-12 lg:pt-14">
 		<div class="flex items-baseline justify-between gap-4">
 			<h2 class="text-primary text-2xl leading-none font-bold lg:text-3xl">{m.highlights()}</h2>
 			<span class="text-base-content/60 text-sm">{m.highlightsNote()}</span>
@@ -90,7 +92,7 @@
 
 <section
 	id="categories"
-	class="mx-auto flex max-w-7xl scroll-mt-6 flex-col gap-6 px-5 pt-10 pb-16 lg:px-12 lg:pb-20"
+	class="mx-auto flex w-full max-w-7xl scroll-mt-6 flex-col gap-6 px-5 pt-10 pb-16 lg:px-12 lg:pb-20"
 >
 	<h2 class="text-primary text-2xl leading-none font-bold lg:text-3xl">{m.categories()}</h2>
 	<CategoryGrid {event} />

@@ -28,6 +28,8 @@ export interface MediaChanges {
 	moveCategory?: boolean;
 	visibility?: Visibility | null;
 	photographer?: string | null;
+	/** Shown under "Impressionen" on the conference page */
+	highlight?: boolean | null;
 }
 
 type MediaInsert = typeof schema.media.$inferInsert;
@@ -72,7 +74,8 @@ export function mediaChangeSet(changes: MediaChanges): Partial<MediaInsert> {
 		...(changes.title != null && { title: changes.title, alt: changes.title }),
 		...(changes.moveCategory && { categoryId: changes.categoryId ?? null }),
 		...(changes.visibility && { visibility: changes.visibility }),
-		...(changes.photographer != null && { photographer: changes.photographer })
+		...(changes.photographer != null && { photographer: changes.photographer }),
+		...(changes.highlight != null && { highlight: changes.highlight })
 	};
 }
 

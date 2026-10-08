@@ -12,7 +12,7 @@
 </script>
 
 <section
-	class="mx-auto grid max-w-7xl items-center gap-12 px-5 pt-9 pb-10 lg:grid-cols-2 lg:px-12 lg:pt-18 lg:pb-20"
+	class="mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pt-9 pb-10 lg:grid-cols-2 lg:px-12 lg:pt-18 lg:pb-20"
 >
 	<div class="flex flex-col gap-4 lg:gap-5">
 		<AccentStripe class="w-20 lg:w-30" />
@@ -48,7 +48,9 @@
 </section>
 
 {#each data.series as series (series.slug)}
-	<section class="mx-auto flex max-w-7xl flex-col gap-4 px-5 pb-9 lg:gap-5 lg:px-12 lg:pb-16">
+	<section
+		class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 pb-9 lg:gap-5 lg:px-12 lg:pb-16"
+	>
 		<p class="text-base-content/60 text-xs tracking-widest uppercase">{series.region}</p>
 		<div class="flex items-baseline justify-between gap-4">
 			<h2 class="text-primary text-2xl leading-none font-bold lg:text-3xl">

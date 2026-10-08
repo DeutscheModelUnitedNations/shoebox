@@ -97,7 +97,7 @@
 			</ul>
 		{/if}
 		<p class="text-base-content/60 text-sm leading-snug">
-			{m.rightsNote({ holder: `${data.category.photographers.join(', ')} / DMUN e. V.` })}
+			{m.rightsNote({ holder: [...data.category.photographers, 'DMUN e. V.'].join(' / ') })}
 		</p>
 	</aside>
 

@@ -98,6 +98,24 @@ describe('gallery tree', () => {
 		expect(teamEvent.categories.find((c) => c.slug === 'team')?.cover).toBe(teamCover);
 	});
 
+	it('falls back to the first visible photo as cover and to the photo credits', () => {
+		const [first, second] = photos(2).map((p, i) => ({ ...p, photographer: `P${i}` }));
+		const untouched: RawSeries = {
+			...all[0],
+			events: [
+				{
+					...all[0].events[0],
+					photographers: [],
+					categories: [category('party', [...photos(1, 'TEAM'), first, second])]
+				}
+			]
+		};
+		const event = buildEvent([untouched], 'mun-sh', '2026', guest)!;
+		expect(event.categories[0].cover).toBe(first);
+		expect(event.cover).toBe(first);
+		expect(event.photographers).toEqual(['P0', 'P1']);
+	});
+
 	it('resolves nested category paths into a trail', () => {
 		const page = buildCategoryPage(
 			all,

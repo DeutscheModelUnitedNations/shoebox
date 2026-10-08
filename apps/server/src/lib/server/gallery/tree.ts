@@ -64,15 +64,15 @@ function photosOf(category: RawCategory, viewer: Viewer): Photo[] {
 	];
 }
 
-/** Drops categories without a single visible photo. */
+/** Drops categories without a single visible photo. Without a cover the first photo stands in. */
 function toNode(category: RawCategory, viewer: Viewer): CategoryNode | null {
-	const photoCount = photosOf(category, viewer).length;
-	if (photoCount === 0) return null;
+	const photos = photosOf(category, viewer);
+	if (photos.length === 0) return null;
 	return {
 		slug: category.slug,
 		name: category.name,
-		photoCount,
-		cover: canSee(category.cover, viewer) ? category.cover : undefined,
+		photoCount: photos.length,
+		cover: canSee(category.cover, viewer) ? category.cover : photos[0],
 		children: category.children.map((c) => toNode(c, viewer)).filter((c) => c !== null)
 	};
 }
@@ -87,8 +87,15 @@ function summarize(series: RawSeries, event: RawEvent, viewer: Viewer): EventSum
 		dates: event.dates,
 		photoCount: categories.reduce((sum, c) => sum + c.photoCount, 0),
 		categoryCount: categories.length,
-		cover: canSee(event.cover, viewer) ? event.cover : undefined
+		cover: canSee(event.cover, viewer) ? event.cover : categories[0]?.cover
 	};
+}
+
+/** The photographers set on the event, or else the names on its visible photos. */
+function photographersOf(event: RawEvent, viewer: Viewer): string[] {
+	if (event.photographers.length > 0) return event.photographers;
+	const names = event.categories.flatMap((c) => photosOf(c, viewer)).map((p) => p.photographer);
+	return [...new Set(names.filter(Boolean))];
 }
 
 function seriesSummary(series: RawSeries, viewer: Viewer): SeriesSummary {
@@ -135,7 +142,7 @@ export function buildEvent(
 		subtitle: event.subtitle,
 		location: event.location,
 		description: event.description,
-		photographers: event.photographers,
+		photographers: photographersOf(event, viewer),
 		rights: event.rights,
 		hero: canSee(event.hero, viewer) ? event.hero : undefined,
 		highlights: event.highlights.filter((p) => canSee(p, viewer)),
@@ -177,7 +184,7 @@ export function buildCategoryPage(
 		root: nodes[0],
 		trail: nodes,
 		photos: photosOf(raw[raw.length - 1], viewer),
-		photographers: found.event.photographers,
+		photographers: photographersOf(found.event, viewer),
 		rights: found.event.rights
 	};
 }

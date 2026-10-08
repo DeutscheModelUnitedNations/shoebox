@@ -40,7 +40,7 @@ schemaBuilder.mutationFields((t) => ({
 	updateMedia: t.field({
 		type: 'Int',
 		description:
-			'Bulk edit of photos in one event. Null fields stay unchanged. With `moveCategory` the photos move to `categoryId`, null meaning no category.',
+			'Bulk edit of photos in one event. Null fields stay unchanged. With `moveCategory` the photos move to `categoryId`, null meaning no category. `highlight` adds them to or removes them from the conference page highlights.',
 		args: {
 			eventId: t.arg.id({ required: true }),
 			mediaIds: t.arg.idList({ required: true }),
@@ -48,7 +48,8 @@ schemaBuilder.mutationFields((t) => ({
 			moveCategory: t.arg.boolean(),
 			categoryId: t.arg.id(),
 			visibility: t.arg({ type: MediaVisibilityEnum }),
-			photographer: t.arg.string()
+			photographer: t.arg.string(),
+			highlight: t.arg.boolean()
 		},
 		resolve: async (_root, args, ctx) => {
 			const eventId = String(args.eventId);
@@ -59,7 +60,8 @@ schemaBuilder.mutationFields((t) => ({
 				moveCategory: args.moveCategory ?? false,
 				categoryId: args.categoryId ? String(args.categoryId) : null,
 				visibility: args.visibility,
-				photographer: args.photographer
+				photographer: args.photographer,
+				highlight: args.highlight
 			});
 		}
 	}),

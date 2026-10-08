@@ -5,7 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 </script>
 
-<section class="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-24 lg:px-12">
+<section class="mx-auto flex w-full max-w-7xl flex-col gap-5 px-5 py-24 lg:px-12">
 	<AccentStripe class="w-30" />
 	<h1 class="text-6xl leading-none font-extralight lg:text-7xl">
 		<span class="font-bold">{page.status}</span>

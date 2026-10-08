@@ -38,7 +38,8 @@
 
 	const fixedHeadings: Record<string, () => string> = {
 		'': m.manageAllPhotos,
-		none: m.manageNoCategory
+		none: m.manageNoCategory,
+		highlights: m.highlights
 	};
 
 	const heading = $derived(
@@ -52,7 +53,9 @@
 
 	let selected = $state<string[]>([]);
 	let anchor = $state<number | null>(null);
-	let preview = $state<StudioMedia | null>(null);
+	// By id, so the preview shows the fresh row after a reload
+	let previewId = $state<string | null>(null);
+	const preview = $derived(data.media.find((media) => media.id === previewId) ?? null);
 
 	// Photos that left the view drop out of the selection
 	$effect(() => {
@@ -140,15 +143,18 @@
 	const applyEdits = (input: ReturnType<typeof editInput>) =>
 		runAndReload(() => mutate('updateMedia', { eventId: event.id, ...input }), m.manageSaved());
 
-	const setCover = () =>
+	const setCover = (mediaId: string) =>
+		runAndReload(() => mutate('setEventCover', { eventId: event.id, mediaId }), m.manageCoverSet());
+
+	const setHighlight = (mediaIds: string[], highlight: boolean) =>
 		runAndReload(
-			() => mutate('setEventCover', { eventId: event.id, mediaId: selected[0] }),
-			m.manageCoverSet()
+			() => mutate('updateMedia', { eventId: event.id, mediaIds, highlight }),
+			m.manageHighlightsSaved()
 		);
 
 	function escape(e: KeyboardEvent) {
 		if (e.key !== 'Escape') return;
-		if (preview) preview = null;
+		if (previewId) previewId = null;
 		else clearSelection();
 	}
 </script>
@@ -161,12 +167,13 @@
 
 <ManageHeader {event} stats={data.stats} />
 
-<div class="grid flex-1 lg:grid-cols-[16rem_1fr_22rem]">
-	<aside class="border-base-300 flex flex-col gap-6 border-r px-5 py-8 lg:px-8">
+<div class="grid flex-1 lg:grid-cols-[18rem_1fr_22rem]">
+	<aside class="border-base-300 flex min-w-0 flex-col gap-6 border-r px-5 py-8 lg:px-6">
 		<CategoryNav
 			tree={data.tree}
 			total={data.stats.total}
 			uncategorized={data.uncategorized}
+			highlights={data.stats.highlights}
 			{active}
 			href={categoryHref}
 			dragging={dragged.length > 0}
@@ -215,7 +222,7 @@
 						dropBefore={dropBefore === media.id}
 						dragged={dragged.includes(media.id)}
 						onToggle={(shiftKey) => toggle(index, shiftKey)}
-						onPreview={() => (preview = media)}
+						onPreview={() => (previewId = media.id)}
 						onDragStart={(e) => dragStart(media, e)}
 						onDragEnd={dragEnd}
 						onDragOver={canReorder ? () => (dropBefore = media.id) : undefined}
@@ -228,9 +235,20 @@
 		{/if}
 	</section>
 
-	<EditPanel {selection} {categories} onApply={applyEdits} onSetCover={setCover} />
+	<EditPanel
+		{selection}
+		{categories}
+		onApply={applyEdits}
+		onSetCover={() => setCover(selection[0].id)}
+		onHighlight={(highlight) => setHighlight(selected, highlight)}
+	/>
 </div>
 
 {#if preview}
-	<PreviewModal media={preview} onClose={() => (preview = null)} />
+	<PreviewModal
+		media={preview}
+		onClose={() => (previewId = null)}
+		onSetCover={() => setCover(preview.id)}
+		onHighlight={(highlight) => setHighlight([preview.id], highlight)}
+	/>
 {/if}
