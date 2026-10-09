@@ -92,6 +92,7 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 - **Storage keys**: decided in `storageKeys` (`@shoebox/shared`), nowhere else.
 - **Jobs**: new job types are added to `processingJobTypes` + `jobPayloadSchemas` in `@shoebox/shared`, then to `handlers/index.ts` in the processor, then a migration for the enum.
 - Prose in docs: no semicolons or em dashes.
+- **Commits**: commit as soon as a self-contained piece of work is finished (a feature, a fix, a refactor), not only at the end of a session. Each commit covers exactly one logical change, leaves the repo in a working state (check, lint and tests pass) and uses a Conventional Commits message (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Do not push unless asked.
 
 ## Design decisions (settled, do not reopen without the maintainers)
 
