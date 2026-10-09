@@ -96,7 +96,7 @@ export async function loadSeries(
 	const photos = new Map<string, Photo>();
 	await Promise.all(
 		media.map(async (m) => {
-			const photo = await toPhoto(m, derivativeUrl, downloads);
+			const photo = await toPhoto(m, derivativeUrl, downloads, viewer.isTeam);
 			if (photo) photos.set(m.id, photo);
 		})
 	);

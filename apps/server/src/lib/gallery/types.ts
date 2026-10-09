@@ -14,10 +14,10 @@ export interface Download {
 	width: number;
 	height: number;
 	bytes: number;
-	/** Who may download this size, from the admin download settings */
-	guests: boolean;
-	team: boolean;
-	/** ALWAYS, GUESTS (team gets the clean file) or OPTIONAL (team may opt out) */
+	/**
+	 * ALWAYS, GUESTS (team gets the clean file) or OPTIONAL (team may opt out). Only sizes the
+	 * viewer may fetch are listed, guests always see ALWAYS.
+	 */
 	watermark: 'ALWAYS' | 'GUESTS' | 'OPTIONAL';
 }
 

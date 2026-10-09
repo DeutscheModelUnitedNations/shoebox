@@ -1,19 +1,16 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { formatBytes, formatNumber } from '$lib/gallery/format';
 	import type { Download, DownloadVariant, Photo } from '$lib/gallery/types';
 	import { m } from '$lib/paraglide/messages';
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
-	import LockSimpleIcon from 'phosphor-svelte/lib/LockSimpleIcon';
 
 	let { photo, isTeam }: { photo: Photo; isTeam: boolean } = $props();
 
 	let selected = $state<DownloadVariant>('large');
 	let noWatermark = $state(false);
 
-	const available = $derived(photo.downloads.filter((d) => (isTeam ? d.team : d.guests)));
-	// Sizes only the team may fetch are shown locked to guests, as an invitation to sign in
-	const locked = $derived(photo.downloads.filter((d) => !isTeam && d.team && !d.guests));
+	// The server lists only the sizes this viewer may fetch
+	const available = $derived(photo.downloads);
 	const chosen = $derived(
 		available.find((d) => d.variant === selected) ??
 			available.find((d) => d.variant === 'large') ??
@@ -71,18 +68,6 @@
 				<span class="text-base-content/60">{formatBytes(download.bytes)}</span>
 			</label>
 		{/each}
-		{#each locked as download (download.variant)}
-			<div
-				class="border-base-300 text-base-content/60 flex cursor-help items-center justify-between gap-3 border-b py-2.5 text-sm"
-				title={m.lockedHint()}
-			>
-				<span class="flex items-center gap-3">
-					<LockSimpleIcon size={18} weight="duotone" />
-					{variantLabel(download)}
-				</span>
-				<span class="badge badge-ghost badge-sm uppercase">{m.locked()}</span>
-			</div>
-		{/each}
 		{#if canChooseClean}
 			<label class="flex cursor-pointer items-center gap-3 pt-3 text-sm">
 				<input
@@ -106,9 +91,6 @@
 	{#if !isTeam}
 		<p class="text-base-content/60 text-sm leading-snug">
 			{m.guestNote()}
-			<a href={resolve('/login')} class="link link-primary" data-sveltekit-reload>
-				{m.guestNoteLogin()}
-			</a>
 		</p>
 	{/if}
 </section>

@@ -33,26 +33,29 @@ function download(
 	row: MediaRow,
 	variant: Download['variant'],
 	size: { width: number; height: number; bytes: number },
-	settings: DownloadSettings
-): Download {
+	settings: DownloadSettings,
+	isTeam: boolean
+): Download | undefined {
 	const { guests, team, watermark } = settings[settingFor[variant]];
+	if (!(isTeam ? team : guests)) return undefined;
 	return {
 		variant,
 		href: `/api/media/${row.id}/download?variant=${variant}`,
 		width: size.width,
 		height: size.height,
 		bytes: size.bytes,
-		guests,
-		team,
-		watermark
+		// Guests always get the watermark, they never learn a clean copy exists
+		watermark: isTeam ? watermark : 'ALWAYS'
 	};
 }
 
+/** Only the sizes this viewer may fetch, so guests never see what the team gets. */
 function downloadsOf(
 	row: MediaRow,
 	medium: DerivativeResult,
 	large: DerivativeResult,
-	settings: DownloadSettings
+	settings: DownloadSettings,
+	isTeam: boolean
 ) {
 	const original = {
 		width: row.width ?? large.width,
@@ -60,18 +63,20 @@ function downloadsOf(
 		bytes: row.bytes ?? 0
 	};
 	// Small originals render medium and large at the same size, offer it once
-	const sizes = medium.width === large.width ? [] : [download(row, 'medium', medium, settings)];
+	const sizes =
+		medium.width === large.width ? [] : [download(row, 'medium', medium, settings, isTeam)];
 	return [
 		...sizes,
-		download(row, 'large', large, settings),
-		download(row, 'original', original, settings)
-	].filter((d) => d.guests || d.team);
+		download(row, 'large', large, settings, isTeam),
+		download(row, 'original', original, settings, isTeam)
+	].filter((d) => d !== undefined);
 }
 
 export async function toPhoto(
 	row: MediaRow,
 	urlOf: UrlOf,
-	settings: DownloadSettings
+	settings: DownloadSettings,
+	isTeam: boolean
 ): Promise<Photo | undefined> {
 	const shown = shownVariants(row);
 	if (!shown) return undefined;
@@ -97,7 +102,7 @@ export async function toPhoto(
 		width: shown.large.width,
 		height: shown.large.height,
 		mimeType: row.mimeType,
-		downloads: downloadsOf(row, shown.medium, shown.large, settings)
+		downloads: downloadsOf(row, shown.medium, shown.large, settings, isTeam)
 	};
 }
 

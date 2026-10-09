@@ -81,23 +81,31 @@ const settings = downloadSettingsSchema.parse({});
 
 describe('toPhoto', () => {
 	it('shows the watermarked variants and links downloads to the endpoint', async () => {
-		const photo = (await toPhoto(mediaRow('m1'), urlOf, settings))!;
+		const photo = (await toPhoto(mediaRow('m1'), urlOf, settings, true))!;
 		expect(photo.thumbUrl).toBe('public:media/m1/thumb.webp');
 		expect(photo.url).toBe('public:media/m1/large.webp');
-		expect(photo.downloads.map((d) => [d.variant, d.guests, d.team, d.watermark])).toEqual([
-			['medium', true, true, 'ALWAYS'],
-			['large', true, true, 'OPTIONAL'],
-			['original', false, true, 'OPTIONAL']
+		expect(photo.downloads.map((d) => [d.variant, d.watermark])).toEqual([
+			['medium', 'ALWAYS'],
+			['large', 'OPTIONAL'],
+			['original', 'OPTIONAL']
 		]);
 		expect(photo.downloads[2]).toMatchObject({ width: 6000, bytes: 8_000_000 });
 		expect(photo.downloads[0].href).toBe('/api/media/m1/download?variant=medium');
+	});
+
+	it('hides team sizes and clean copies from guests', async () => {
+		const photo = (await toPhoto(mediaRow('m6'), urlOf, settings, false))!;
+		expect(photo.downloads.map((d) => [d.variant, d.watermark])).toEqual([
+			['medium', 'ALWAYS'],
+			['large', 'ALWAYS']
+		]);
 	});
 
 	it('drops sizes nobody may download', async () => {
 		const closed = downloadSettingsSchema.parse({
 			original: { guests: false, team: false, watermark: 'ALWAYS' }
 		});
-		const photo = (await toPhoto(mediaRow('m5'), urlOf, closed))!;
+		const photo = (await toPhoto(mediaRow('m5'), urlOf, closed, true))!;
 		expect(photo.downloads.map((d) => d.variant)).toEqual(['medium', 'large']);
 	});
 
@@ -108,15 +116,17 @@ describe('toPhoto', () => {
 			derivative('m2', 'medium', 700),
 			derivative('m2', 'large', 700)
 		];
-		const photo = (await toPhoto(row, urlOf, settings))!;
+		const photo = (await toPhoto(row, urlOf, settings, true))!;
 		expect(photo.downloads.map((d) => d.variant)).toEqual(['large', 'original']);
 	});
 
 	it('signs private derivatives and skips unprocessed media', async () => {
 		const row = mediaRow('m3', { visibility: 'TEAM' });
 		row.derivatives = row.derivatives.map((d) => ({ ...d, public: false }));
-		expect((await toPhoto(row, urlOf, settings))!.url).toBe('signed:media/m3/large.webp');
-		expect(await toPhoto(mediaRow('m4', { derivatives: [] }), urlOf, settings)).toBeUndefined();
+		expect((await toPhoto(row, urlOf, settings, true))!.url).toBe('signed:media/m3/large.webp');
+		expect(
+			await toPhoto(mediaRow('m4', { derivatives: [] }), urlOf, settings, true)
+		).toBeUndefined();
 	});
 });
 
@@ -133,7 +143,7 @@ describe('buildTree and assemble', () => {
 	const photos = new Map<string, Photo>();
 
 	it('nests categories and attaches photos', async () => {
-		for (const m of media) photos.set(m.id, (await toPhoto(m, urlOf, settings))!);
+		for (const m of media) photos.set(m.id, (await toPhoto(m, urlOf, settings, true))!);
 		const tree = buildTree(categories, media, photos);
 		expect(tree.map((c) => c.slug)).toEqual(['gremien', 'presse']);
 		expect(tree[0].children[0].photos.map((p) => p.id)).toEqual(['a']);
