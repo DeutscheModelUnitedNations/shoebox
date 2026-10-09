@@ -86,6 +86,13 @@
 		anchor = index;
 	}
 
+	const allSelected = $derived(selected.length === data.media.length);
+
+	function selectAll() {
+		selected = data.media.map((media) => media.id);
+		anchor = null;
+	}
+
 	function clearSelection() {
 		selected = [];
 		anchor = null;
@@ -165,9 +172,24 @@
 		ArrowRight: () => stepTo(1)
 	};
 
+	const isTyping = (target: EventTarget | null) =>
+		target instanceof HTMLElement &&
+		(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+
+	function selectAllShortcut(e: KeyboardEvent) {
+		if (!(e.metaKey || e.ctrlKey) || isTyping(e.target)) return;
+		e.preventDefault();
+		selectAll();
+	}
+
+	const gridKeys: Record<string, (e: KeyboardEvent) => void> = {
+		Escape: clearSelection,
+		a: selectAllShortcut
+	};
+
 	function onKeydown(e: KeyboardEvent) {
 		if (preview) previewKeys[e.key]?.()?.();
-		else if (e.key === 'Escape') clearSelection();
+		else gridKeys[e.key]?.(e);
 	}
 </script>
 
@@ -219,6 +241,7 @@
 			{canReorder}
 			sort={data.filter.sort}
 			sortHref={(sort) => withParams({ sort: sort === 'taken' ? 'taken' : null })}
+			onSelectAll={data.media.length > 0 && !allSelected ? selectAll : undefined}
 		/>
 
 		{#if data.media.length === 0}

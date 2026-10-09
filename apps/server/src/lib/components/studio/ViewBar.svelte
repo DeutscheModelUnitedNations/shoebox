@@ -9,9 +9,11 @@
 		canReorder: boolean;
 		sort: 'custom' | 'taken';
 		sortHref: (sort: 'custom' | 'taken') => string;
+		/** Selects every photo in the view, hidden when they already are */
+		onSelectAll?: () => void;
 	}
 
-	let { heading, count, canReorder, sort, sortHref }: Props = $props();
+	let { heading, count, canReorder, sort, sortHref, onSelectAll }: Props = $props();
 
 	const sortLinks = $derived([
 		{ sort: 'custom' as const, label: m.manageSortCustom() },
@@ -26,6 +28,11 @@
 			· {m.photoCount({ count })}
 			{#if canReorder}· {m.manageOrderLikeGallery()}{/if}
 		</span>
+		{#if onSelectAll}
+			<button class="link link-hover link-primary ml-2" onclick={onSelectAll}>
+				{m.manageSelectAll()}
+			</button>
+		{/if}
 	</p>
 	<p class="text-base-content/60">
 		{m.manageSort()}:
