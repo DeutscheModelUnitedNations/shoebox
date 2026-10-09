@@ -44,6 +44,11 @@ export async function probe(ctx: HandlerContext, file: string): Promise<Probe> {
 	};
 }
 
+/** ffmpeg defaults to every core, PROCESSOR_THREADS caps it like libvips. */
+function threadArgs(ctx: HandlerContext) {
+	return ctx.config.PROCESSOR_THREADS > 0 ? ['-threads', String(ctx.config.PROCESSOR_THREADS)] : [];
+}
+
 /** Grabs one frame as PNG. Falls back to the first frame for clips shorter than a second. */
 export async function posterFrame(ctx: HandlerContext, file: string, atSeconds: number) {
 	const grab = (seek: number) =>
@@ -52,6 +57,7 @@ export async function posterFrame(ctx: HandlerContext, file: string, atSeconds: 
 			[
 				'-v',
 				'error',
+				...threadArgs(ctx),
 				'-ss',
 				String(seek),
 				'-i',

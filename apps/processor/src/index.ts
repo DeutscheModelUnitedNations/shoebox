@@ -1,11 +1,22 @@
 import { createDb } from '@shoebox/db';
 import { listenForJobs } from '@shoebox/db/listen';
 import { createS3Client } from '@shoebox/shared';
+import { setPriority } from 'node:os';
+import sharp from 'sharp';
 import { loadConfig } from './config';
 import { log } from './log';
 import { Worker } from './worker';
 
 const config = loadConfig();
+
+// Media processing can take its time, the web server must not starve. ffmpeg inherits the priority.
+if (config.PROCESSOR_THREADS > 0) sharp.concurrency(config.PROCESSOR_THREADS);
+try {
+	setPriority(config.PROCESSOR_NICE);
+} catch (error) {
+	log('warn', 'could not lower process priority', { error: String(error) });
+}
+
 const db = createDb(config.DATABASE_URL);
 const s3 = createS3Client(config);
 const worker = new Worker(db, s3, config);
@@ -42,6 +53,8 @@ process.on('SIGINT', () => void shutdown('SIGINT'));
 log('info', 'processor started', {
 	worker: worker.id,
 	concurrency: config.PROCESSOR_CONCURRENCY,
+	threads: sharp.concurrency(),
+	nice: config.PROCESSOR_NICE,
 	health: `http://127.0.0.1:${config.PROCESSOR_HEALTH_PORT}/healthz`
 });
 await worker.run();

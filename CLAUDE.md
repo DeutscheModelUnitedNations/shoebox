@@ -69,7 +69,7 @@ Root scripts `cd` into the workspace, `bun --env-file=../../.env` injects the sh
 
 ### Processor (`apps/processor/src`)
 
-- `index.ts` wires config, db, S3, the `LISTEN` connection, a health server (`/healthz`) and graceful shutdown.
+- `index.ts` applies the CPU limits (`PROCESSOR_THREADS` for libvips and ffmpeg, `PROCESSOR_NICE`), wires config, db, S3, the `LISTEN` connection, a health server (`/healthz`) and graceful shutdown.
 - `worker.ts` claims jobs up to `PROCESSOR_CONCURRENCY`, sleeps until a `NOTIFY` or the poll interval, recovers stale `RUNNING` jobs.
 - `handlers/`: one handler per job type (`PING`, `IMAGE_DERIVATIVES`, `VIDEO_DERIVATIVES`, `ZIP_IMPORT`). Image renders read the watermark and download sizes from the `setting` table, photos that are a conference's hero also get the watermarked 3840px `hero` banner size (setting a cover queues that render). `detectDuplicates` (set by uploads and ZIP imports only) records perceptual-hash matches as `duplicate_candidate`. Payloads are validated with the Zod schemas from `@shoebox/shared`. Results land in `processing_job.result` and, for media, on the `media` row (`markMediaReady`). Payloads with `public: false` (team-private media) keep every derivative in the private bucket. Media whose job exhausts its retries is marked FAILED.
 - `trash.ts` purges media deleted more than 30 days ago, hourly.
