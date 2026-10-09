@@ -59,7 +59,7 @@
 				href={categoryHref(event, path)}
 				class={['justify-between', active && 'menu-active', isOpen(node, depth) && 'font-bold']}
 			>
-				<span>{node.name}</span>
+				<span class="min-w-0 wrap-break-word hyphens-auto">{node.name}</span>
 				<span class="font-normal opacity-60">{node.photoCount}</span>
 			</a>
 			{#if isOpen(node, depth) && node.children.length > 0}
@@ -76,7 +76,9 @@
 		{@render crumbs()}
 		<div class="flex flex-col gap-3">
 			<AccentStripe />
-			<h1 class="text-4xl leading-none font-extralight">{root.name}</h1>
+			<h1 class="text-4xl leading-tight font-extralight wrap-break-word hyphens-auto">
+				{root.name}
+			</h1>
 			<p class="text-base-content/60 text-sm">
 				{m.categorySummary({ count: root.photoCount, children: root.children.length })}
 			</p>
@@ -94,7 +96,9 @@
 	<section class="flex flex-col gap-3.5 px-5 pt-6 pb-4 lg:hidden">
 		{@render crumbs()}
 		<AccentStripe />
-		<h1 class="text-4xl leading-none font-extralight">{current.name}</h1>
+		<h1 class="text-4xl leading-tight font-extralight wrap-break-word hyphens-auto">
+			{current.name}
+		</h1>
 		<p class="text-base-content/60 text-sm">
 			{current.children.length > 0
 				? m.categorySummary({ count: current.photoCount, children: current.children.length })
@@ -129,7 +133,11 @@
 
 	<section class="flex flex-col gap-6 px-5 pb-8 lg:px-12 lg:py-10">
 		<div class="hidden items-baseline justify-between gap-4 lg:flex">
-			<h2 class="text-primary text-3xl leading-none font-bold">{heading}</h2>
+			<h2
+				class="text-primary min-w-0 text-3xl leading-tight font-bold wrap-break-word hyphens-auto"
+			>
+				{heading}
+			</h2>
 			<span class="text-base-content/60 text-sm">
 				{m.photoCount({ count: current.photoCount })}
 			</span>
