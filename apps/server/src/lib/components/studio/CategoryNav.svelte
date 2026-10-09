@@ -60,7 +60,7 @@
 			]}
 			{...dropTarget(node.id)}
 		>
-			<span class={['flex min-w-0 items-center gap-2', node.depth === 1 && 'font-bold']}>
+			<span class={['flex w-0 min-w-0 flex-1 items-center gap-2', node.depth === 1 && 'font-bold']}>
 				<span class="truncate" title={node.name}>{node.name}</span>
 				{#if node.hidden}
 					<EyeSlashIcon size={14} weight="duotone" aria-label={m.visibilityHidden()} />
