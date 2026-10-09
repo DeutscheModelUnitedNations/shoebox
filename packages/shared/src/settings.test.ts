@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSetting, variantSpecs } from './settings';
+import { needsRerender, parseSetting, variantSpecs } from './settings';
 
 describe('settings', () => {
 	it('falls back to the defaults for missing or broken values', () => {
@@ -32,5 +32,22 @@ describe('settings', () => {
 			maxEdge: 3840,
 			watermark: true
 		});
+	});
+
+	it('re-renders only for watermark and size changes', () => {
+		const current = {
+			watermark: parseSetting('watermark', {}),
+			downloads: parseSetting('downloads', {})
+		};
+		const next = structuredClone(current);
+		expect(needsRerender(current, next)).toBe(false);
+		next.downloads.original.guests = true;
+		next.downloads.web.watermark = 'ALWAYS';
+		expect(needsRerender(current, next)).toBe(false);
+		next.downloads.web.longEdge = 2560;
+		expect(needsRerender(current, next)).toBe(true);
+		const credit = structuredClone(current);
+		credit.watermark.credit = true;
+		expect(needsRerender(current, credit)).toBe(true);
 	});
 });

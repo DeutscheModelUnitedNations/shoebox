@@ -1,7 +1,12 @@
 import { and, asc, count, eq, inArray, isNull, max, ne } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 import { enqueueJob, getSetting, putSetting } from '@shoebox/db';
-import type { DownloadSettings, UsageSettings, WatermarkSettings } from '@shoebox/shared';
+import {
+	needsRerender,
+	type DownloadSettings,
+	type UsageSettings,
+	type WatermarkSettings
+} from '@shoebox/shared';
 import { db, schema } from '$api/db';
 import { normalizeEmail } from './roles';
 import { slugify, uniqueSlug } from './slug';
@@ -322,6 +327,15 @@ export async function unassignPhotographer(eventId: string, rawEmail: string) {
 
 // ── Settings ─────────────────────────────────────────────────────────────────────────────
 
+/** Media a render-settings change renders again: everything uploaded and not in the trash. */
+const rerenderable = and(isNull(schema.media.deletedAt), ne(schema.media.status, 'UPLOADING'));
+
+/** How many files a watermark or size change would render again, shown before saving. */
+export async function countRerenderable() {
+	const [row] = await db.select({ n: count() }).from(schema.media).where(rerenderable);
+	return row?.n ?? 0;
+}
+
 /** Queues a fresh render of every photo, used after watermark or size changes. */
 async function rerenderAll() {
 	const rows = await db
@@ -331,7 +345,7 @@ async function rerenderAll() {
 			visibility: schema.media.visibility
 		})
 		.from(schema.media)
-		.where(and(isNull(schema.media.deletedAt), ne(schema.media.status, 'UPLOADING')));
+		.where(rerenderable);
 	for (const row of rows) {
 		await enqueueJob(db, 'IMAGE_DERIVATIVES', {
 			mediaId: row.id,
@@ -355,10 +369,10 @@ export async function saveRenderSettings(
 	]);
 	await putSetting(db, 'watermark', watermark, userId);
 	await putSetting(db, 'downloads', downloads, userId);
-	const changed =
-		JSON.stringify(oldWatermark) !== JSON.stringify(watermark) ||
-		oldDownloads.preview.longEdge !== downloads.preview.longEdge ||
-		oldDownloads.web.longEdge !== downloads.web.longEdge;
+	const changed = needsRerender(
+		{ watermark: oldWatermark, downloads: oldDownloads },
+		{ watermark, downloads }
+	);
 	return changed ? rerenderAll() : 0;
 }
 

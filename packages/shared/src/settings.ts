@@ -102,3 +102,20 @@ export function variantSpecs(downloads: DownloadSettings, { hero = false } = {})
 		? [...variants, { name: 'hero', maxEdge: HERO_LONG_EDGE, watermark: true }]
 		: variants;
 }
+
+interface RenderSettings {
+	watermark: WatermarkSettings;
+	downloads: DownloadSettings;
+}
+
+/**
+ * Whether saving `next` over `current` changes the rendered files, so every photo has to be
+ * rendered again. Who may download which size is decided at request time and needs no render.
+ */
+export function needsRerender(current: RenderSettings, next: RenderSettings): boolean {
+	return (
+		JSON.stringify(current.watermark) !== JSON.stringify(next.watermark) ||
+		current.downloads.preview.longEdge !== next.downloads.preview.longEdge ||
+		current.downloads.web.longEdge !== next.downloads.web.longEdge
+	);
+}

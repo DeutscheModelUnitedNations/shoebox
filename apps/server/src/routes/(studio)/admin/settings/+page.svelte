@@ -3,19 +3,40 @@
 	import { untrack } from 'svelte';
 	import { mutate } from '$lib/api/mutate';
 	import AdminHeading from '$lib/components/studio/AdminHeading.svelte';
+	import Modal from '$lib/components/studio/Modal.svelte';
 	import SelectField from '$lib/components/studio/SelectField.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { attempt, toast } from '$lib/studio/toast.svelte';
-	import type { DownloadSettings, WatermarkPolicy, WatermarkSettings } from '@shoebox/shared';
+	import {
+		needsRerender,
+		type DownloadSettings,
+		type WatermarkPolicy,
+		type WatermarkSettings
+	} from '@shoebox/shared';
 
 	let { data } = $props();
 
 	let watermark = $state<WatermarkSettings>(untrack(() => structuredClone(data.watermark)));
 	let downloads = $state<DownloadSettings>(untrack(() => structuredClone(data.downloads)));
-	$effect(() => {
+	$effect(() => discard());
+
+	function discard() {
 		watermark = structuredClone(data.watermark);
 		downloads = structuredClone(data.downloads);
-	});
+	}
+
+	const dirty = $derived(
+		JSON.stringify({ watermark, downloads }) !==
+			JSON.stringify({ watermark: data.watermark, downloads: data.downloads })
+	);
+	/** Every photo is rendered again, so saving asks first. */
+	const expensive = $derived(
+		needsRerender(
+			{ watermark: data.watermark, downloads: data.downloads },
+			{ watermark, downloads }
+		)
+	);
+	let confirming = $state(false);
 
 	const positions: [WatermarkSettings['position'], string][] = [
 		['bottom-right', m.settingsBottomRight()],
@@ -30,6 +51,8 @@
 		[16, m.settingsSizeLarge({ percent: 16 })],
 		[24, m.settingsSizeXLarge({ percent: 24 })]
 	];
+	/** Same bounds as `downloadSettingsSchema` */
+	const edgeLimits = { preview: [320, 4096], web: [640, 6000] } as const;
 	const opacities: [number, string][] = [40, 60, 80, 100].map((v) => [v, `${v} %`]);
 	const audiences = [
 		['guests', m.settingsGuests()],
@@ -55,6 +78,7 @@
 	});
 
 	async function save() {
+		confirming = false;
 		const queued = await attempt(() =>
 			mutate('saveRenderSettings', {
 				...watermark,
@@ -83,8 +107,8 @@
 				<label class="input input-sm w-32">
 					<input
 						type="number"
-						min="320"
-						max="6000"
+						min={edgeLimits[key][0]}
+						max={edgeLimits[key][1]}
 						step="10"
 						bind:value={downloads[key].longEdge}
 					/>
@@ -114,7 +138,23 @@
 
 <div class="flex flex-col gap-10">
 	<AdminHeading title={m.adminSettings()}>
-		<button class="btn btn-primary" onclick={save}>{m.adminSave()}</button>
+		<div class="flex flex-wrap items-center gap-3">
+			{#if expensive && data.rerenderCount > 0}
+				<span class="text-base-content/60 text-sm">
+					{m.settingsRerenderHint({ count: data.rerenderCount })}
+				</span>
+			{/if}
+			<button class="btn btn-outline" disabled={!dirty} onclick={discard}>
+				{m.settingsDiscard()}
+			</button>
+			<button
+				class="btn btn-primary"
+				disabled={!dirty}
+				onclick={() => (expensive && data.rerenderCount > 0 ? (confirming = true) : save())}
+			>
+				{m.adminSave()}
+			</button>
+		</div>
 	</AdminHeading>
 
 	<div class="grid gap-8 xl:grid-cols-[1fr_20rem]">
@@ -183,3 +223,16 @@
 		<p class="text-base-content/60 text-sm leading-snug">{m.settingsDownloadsHint()}</p>
 	</section>
 </div>
+
+{#if confirming}
+	<Modal
+		title={m.settingsRerenderTitle({ count: data.rerenderCount })}
+		onClose={() => (confirming = false)}
+	>
+		<p>{m.settingsRerenderText({ count: data.rerenderCount })}</p>
+		{#snippet actions()}
+			<button class="btn btn-outline" onclick={() => (confirming = false)}>{m.cancel()}</button>
+			<button class="btn btn-warning" onclick={save}>{m.settingsRerenderConfirm()}</button>
+		{/snippet}
+	</Modal>
+{/if}
