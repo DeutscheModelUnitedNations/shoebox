@@ -378,7 +378,9 @@
 	"zipSimilar": "Ähnlich",
 	"zipSkipRoot": "Obersten Ordner „{folder}“ überspringen, er trägt nur den Konferenznamen",
 	"zipSummary": "{photos} Bilder in {folders} Ordnern",
+	"zipToggleSubfolders": "Unterordner von {folder} ein- oder ausblenden",
 	"zipTooDeep": "Zu tief",
+	"zipTotal": "{count} insgesamt",
 	"zipUnreadable": "Dieses Archiv lässt sich nicht lesen.",
 	"zipUpload": "{count} Bilder hochladen"
 }

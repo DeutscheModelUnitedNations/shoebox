@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { CategoryOption } from './categories';
 import {
 	folderTarget,
+	folderTree,
+	guideLines,
 	normalizeName,
 	similarName,
 	suggestMappings,
@@ -42,6 +44,50 @@ describe('summarizeFolders', () => {
 	it('keeps the root folder when it is not skipped', () => {
 		expect(summarizeFolders(['MUN/a.jpg'], null)).toEqual([
 			{ key: 'MUN', name: 'MUN', depth: 1, count: 1, tooDeep: false }
+		]);
+	});
+});
+
+describe('folderTree', () => {
+	const folders = summarizeFolders(
+		['A/a.jpg', 'A/X/b.jpg', 'A/X/c.jpg', 'A/Y/d.jpg', 'A B/e.jpg', 'f.jpg'],
+		null
+	);
+
+	it('keeps subfolders directly below their parent', () => {
+		expect(folders.map((f) => f.key)).toEqual(['A', 'A/X', 'A/Y', 'A B', '']);
+	});
+
+	it('draws guide lines, flags parents and sums subtrees', () => {
+		expect(folderTree(folders)).toEqual({
+			A: { lines: [], hasChildren: true, total: 4 },
+			'A/X': { lines: [true], hasChildren: false, total: 2 },
+			'A/Y': { lines: [false], hasChildren: false, total: 1 },
+			'A B': { lines: [], hasChildren: false, total: 1 }
+		});
+	});
+});
+
+describe('guideLines', () => {
+	it('draws an open parent with a line down to its children', () => {
+		expect(guideLines({ lines: [], hasChildren: true, total: 4 }, 0, true)).toEqual([
+			'left:1.25rem;top:calc(50% + 0.625rem);bottom:0'
+		]);
+		expect(guideLines({ lines: [], hasChildren: true, total: 4 }, 0, false)).toEqual([]);
+	});
+
+	it('continues ancestor lines and ends the elbow at the last child', () => {
+		expect(guideLines({ lines: [true, false], hasChildren: false, total: 1 }, 2, true)).toEqual([
+			'left:1.25rem;top:0;bottom:0',
+			'left:2.5rem;top:0;bottom:50%',
+			'left:2.5rem;top:50%;height:1px;width:0.625rem'
+		]);
+	});
+
+	it('skips the line of an ancestor without later siblings', () => {
+		expect(guideLines({ lines: [false, true], hasChildren: false, total: 1 }, 2, true)).toEqual([
+			'left:2.5rem;top:0;bottom:0',
+			'left:2.5rem;top:50%;height:1px;width:0.625rem'
 		]);
 	});
 });

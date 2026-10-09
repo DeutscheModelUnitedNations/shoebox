@@ -378,7 +378,9 @@
 	"zipSimilar": "Similar",
 	"zipSkipRoot": "Skip the top folder „{folder}“, it only carries the conference name",
 	"zipSummary": "{photos} photos in {folders} folders",
+	"zipToggleSubfolders": "Show or hide the subfolders of {folder}",
 	"zipTooDeep": "Too deep",
+	"zipTotal": "{count} in total",
 	"zipUnreadable": "This archive cannot be read.",
 	"zipUpload": "Upload {count} photos"
 }

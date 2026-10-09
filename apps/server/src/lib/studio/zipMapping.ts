@@ -30,6 +30,16 @@ function depthBelowRoot(path: string, rootToSkip: string | null) {
 	return dirs.length - (rootToSkip && dirs[0] === rootToSkip ? 1 : 0);
 }
 
+/** Segment by segment, so every folder is directly followed by its subfolders. */
+function byPath(a: string, b: string) {
+	const [x, y] = [a.split('/'), b.split('/')];
+	for (let i = 0; i < Math.min(x.length, y.length); i++) {
+		const order = x[i].localeCompare(y[i]);
+		if (order !== 0) return order;
+	}
+	return x.length - y.length;
+}
+
 /** Every folder with its photo count, including intermediate folders without photos. */
 export function summarizeFolders(paths: string[], rootToSkip: string | null): ZipFolder[] {
 	const counts: Record<string, number> = {};
@@ -43,7 +53,7 @@ export function summarizeFolders(paths: string[], rootToSkip: string | null): Zi
 	}
 	const folders = Object.keys(counts)
 		.filter((key) => key !== '')
-		.sort((a, b) => a.localeCompare(b))
+		.sort(byPath)
 		.map((key) => ({
 			key,
 			name: key.split('/').at(-1)!,
@@ -55,6 +65,60 @@ export function summarizeFolders(paths: string[], rootToSkip: string | null): Zi
 	return loose === undefined
 		? folders
 		: [...folders, { key: '', name: '', depth: 0, count: loose, tooDeep: false }];
+}
+
+export interface TreeRow {
+	/**
+	 * One entry per level above the folder: whether a guide line continues there, i.e. whether
+	 * the folder's ancestor (or, for the last entry, the folder itself) has a later sibling.
+	 */
+	lines: boolean[];
+	hasChildren: boolean;
+	/** Photos in the folder and all of its subfolders */
+	total: number;
+}
+
+const parentOf = (key: string) => key.split('/').slice(0, -1).join('/');
+
+/** Guide lines, child flags and subtree totals for the folder tree, keyed by folder key. */
+export function folderTree(folders: ZipFolder[]): Record<string, TreeRow> {
+	const tree = folders.filter((f) => f.key !== '');
+	const lastChild = new Set<string>();
+	const seenParent = new Set<string>();
+	for (const folder of [...tree].reverse()) {
+		const parent = parentOf(folder.key);
+		if (!seenParent.has(parent)) lastChild.add(folder.key);
+		seenParent.add(parent);
+	}
+	const rows: Record<string, TreeRow> = {};
+	for (const folder of tree) {
+		const parts = folder.key.split('/');
+		const lines = parts.slice(1).map((_, i) => !lastChild.has(parts.slice(0, i + 2).join('/')));
+		const total = tree
+			.filter((f) => f.key === folder.key || f.key.startsWith(`${folder.key}/`))
+			.reduce((sum, f) => sum + f.count, 0);
+		rows[folder.key] = { lines, hasChildren: seenParent.has(folder.key), total };
+	}
+	return rows;
+}
+
+/** Left edge of a tree level in rem, the level's icon (1rem) is centred 0.5rem further right */
+export const treeIndent = (level: number) => 0.75 + level * 1.25;
+
+/**
+ * Inline styles for the guide lines of one table row: the ancestors' vertical lines, the elbow
+ * into the folder and the line down to its children while they are shown.
+ */
+export function guideLines(row: TreeRow, level: number, open: boolean): string[] {
+	const centre = (l: number) => treeIndent(l) + 0.5;
+	const ancestors = row.lines
+		.map((continues, a) => ({ continues, a }))
+		.filter(({ continues, a }) => continues || a === level - 1)
+		.map(({ continues, a }) => `left:${centre(a)}rem;top:0;bottom:${continues ? '0' : '50%'}`);
+	const elbow = level > 0 ? [`left:${centre(level - 1)}rem;top:50%;height:1px;width:0.625rem`] : [];
+	const down =
+		row.hasChildren && open ? [`left:${centre(level)}rem;top:calc(50% + 0.625rem);bottom:0`] : [];
+	return [...ancestors, ...elbow, ...down];
 }
 
 /** Lowercase ASCII without separators, so "Eröffnung" matches "eroeffnung". */

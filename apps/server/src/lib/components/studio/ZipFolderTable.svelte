@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
+	import { formatNumber } from '$lib/gallery/format';
 	import { m } from '$lib/paraglide/messages';
 	import type { CategoryOption } from '$lib/studio/categories';
-	import type { Mapping, Match, ZipFolder } from '$lib/studio/zipMapping';
+	import { folderTree, type Mapping, type Match, type ZipFolder } from '$lib/studio/zipMapping';
+	import ZipFolderName from './ZipFolderName.svelte';
 
 	interface Props {
 		folders: ZipFolder[];
@@ -19,6 +22,12 @@
 		manual: { label: m.zipAssigned, class: 'badge-ghost' },
 		none: { label: () => '', class: 'hidden' }
 	};
+
+	const tree = $derived(folderTree(folders));
+	const collapsed = new SvelteSet<string>();
+	const visible = $derived(
+		folders.filter((f) => ![...collapsed].some((key) => f.key.startsWith(`${key}/`)))
+	);
 </script>
 
 {#snippet target(folder: ZipFolder, map: Mapping)}
@@ -57,16 +66,25 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each folders as folder (folder.key)}
+			{#each visible as folder (folder.key)}
 				{@const map = mapping[folder.key]}
+				{@const row = tree[folder.key]}
+				{@const open = !collapsed.has(folder.key)}
 				<tr>
-					<td
-						class={folder.depth === 1 ? 'font-bold' : ''}
-						style:padding-left={`${0.75 + Math.max(folder.depth - 1, 0) * 1.25}rem`}
-					>
-						{folder.key === '' ? m.zipNoFolder() : folder.name}
+					<ZipFolderName
+						{folder}
+						{row}
+						{open}
+						onToggle={() => (open ? collapsed.add(folder.key) : collapsed.delete(folder.key))}
+					/>
+					<td class="text-right">
+						{folder.count || '–'}
+						{#if row?.hasChildren}
+							<span class="text-base-content/60 block text-xs whitespace-nowrap">
+								{m.zipTotal({ count: formatNumber(row.total) })}
+							</span>
+						{/if}
 					</td>
-					<td class="text-right">{folder.count || '–'}</td>
 					<td class="min-w-64"
 						>{#if map}{@render target(folder, map)}{/if}</td
 					>
