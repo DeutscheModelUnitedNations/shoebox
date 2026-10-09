@@ -358,7 +358,7 @@
 	"zipAccepted": "Up to 20 GB · folders become categories · JPG, PNG and WebP inside",
 	"zipAssigned": "Assigned",
 	"zipCategory": "Category in the gallery",
-	"zipChoose": "Choose a ZIP archive",
+	"zipChoose": "Drop a ZIP archive here",
 	"zipCounts": "{existing} existing · {created} will be created · {merged} merged",
 	"zipExisting": "Existing",
 	"zipFolder": "Folder in the archive",

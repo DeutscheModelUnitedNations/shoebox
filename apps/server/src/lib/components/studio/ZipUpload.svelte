@@ -10,6 +10,7 @@
 	import { toast } from '$lib/studio/toast.svelte';
 	import { suggestMappings, summarizeFolders, type Mapping } from '$lib/studio/zipMapping';
 	import { uploadArchive } from '$lib/studio/zipUpload';
+	import FileDropZone from './FileDropZone.svelte';
 	import ZipFolderTable from './ZipFolderTable.svelte';
 
 	interface Props {
@@ -32,6 +33,8 @@
 	let finishedBatch = $state<string | null>(null);
 	let input = $state<HTMLInputElement>();
 
+	const ZIP_ACCEPT = '.zip,application/zip';
+
 	const options = $derived(categories[eventId] ?? []);
 	const root = $derived(commonRootFolder(paths));
 	const rootToSkip = $derived(skipRoot ? root : null);
@@ -49,8 +52,14 @@
 		mapping = untrack(() => suggestMappings(f, o, mapping));
 	});
 
+	const isZip = (f: File) => f.name.toLowerCase().endsWith('.zip') || f.type === 'application/zip';
+
 	async function read(selected: File | undefined) {
 		if (!selected) return;
+		if (!isZip(selected)) {
+			toast(m.zipUnreadable(), 'error');
+			return;
+		}
 		finishedBatch = null;
 		const reader = new ZipReader(new BlobReader(selected));
 		try {
@@ -105,19 +114,19 @@
 <input
 	bind:this={input}
 	type="file"
-	accept=".zip,application/zip"
+	accept={ZIP_ACCEPT}
 	class="hidden"
 	onchange={(e) => read(e.currentTarget.files?.[0])}
 />
 
 {#if !file}
-	<div
-		class="bg-base-200 border-base-content/30 flex flex-col items-center gap-3 border border-dashed px-6 py-12 text-center"
-	>
-		<p class="text-xl font-bold">{m.zipChoose()}</p>
-		<p class="text-base-content/70 text-sm">{m.zipAccepted()}</p>
-		<button class="btn btn-outline" onclick={() => input?.click()}>{m.uploadChoose()}</button>
-	</div>
+	<FileDropZone
+		accept={ZIP_ACCEPT}
+		multiple={false}
+		title={m.zipChoose()}
+		hint={m.zipAccepted()}
+		onFiles={(files) => read(files.find(isZip) ?? files[0])}
+	/>
 {:else}
 	<div class="bg-base-200 flex flex-wrap items-center justify-between gap-3 px-5 py-4">
 		<div>
