@@ -11,8 +11,6 @@
 
 	let { data } = $props();
 
-	const pageSize = 24;
-
 	const event = $derived(data.category.event);
 	const root = $derived(data.category.root);
 	const trail = $derived(data.category.trail);
@@ -31,15 +29,6 @@
 	const parent = $derived(trail.length > 1 ? trail[trail.length - 2] : undefined);
 	const chipBase = $derived(current.children.length > 0 ? data.path : data.path.slice(0, -1));
 	const chips = $derived(current.children.length > 0 ? current.children : (parent?.children ?? []));
-
-	const limit = $derived(Number(page.url.searchParams.get('limit')) || pageSize);
-	const visible = $derived(data.category.photos.slice(0, limit));
-	const moreHref = $derived.by(() => {
-		const url = new URL(page.url);
-		url.searchParams.set('limit', String(limit + pageSize));
-		url.searchParams.delete('photo');
-		return `${url.pathname}${url.search}`;
-	});
 
 	const pathTo = (index: number) => data.path.slice(0, index + 1);
 	const isOpen = (node: CategoryNode, depth: number) => data.path[depth] === node.slug;
@@ -145,18 +134,7 @@
 				{m.photoCount({ count: current.photoCount })}
 			</span>
 		</div>
-		<PhotoMasonry photos={visible} />
-		{#if visible.length < data.category.photos.length}
-			<!-- eslint-disable svelte/no-navigation-without-resolve -- the current page.url with ?limit= raised -->
-			<a
-				href={moreHref}
-				class="btn btn-outline btn-block lg:btn-wide lg:self-center"
-				data-sveltekit-noscroll
-			>
-				{m.loadMore()}
-			</a>
-			<!-- eslint-enable svelte/no-navigation-without-resolve -->
-		{/if}
+		<PhotoMasonry photos={data.category.photos} />
 	</section>
 </div>
 
