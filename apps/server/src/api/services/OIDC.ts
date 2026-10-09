@@ -48,7 +48,8 @@ export const OIDC = !building
 			logoutCallbackRoute: configPublic.PUBLIC_OIDC_LOGOUT_CALLBACK_ROUTE,
 			// Visiting one of these without a session starts the login flow.
 			authenticatedRoutes: ['/login', '/app', '/admin', '/upload', '/manage'],
-			logoutPath: '/',
+			// The library redirects to `${origin}/${logoutPath}`, so no leading slash here.
+			logoutPath: '',
 			allowBearerToken: true,
 			async userLoggedInSuccessfully({ user }) {
 				const values = normalizeClaims(user as Record<string, unknown>);
