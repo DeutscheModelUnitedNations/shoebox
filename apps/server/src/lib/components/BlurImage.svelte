@@ -15,12 +15,22 @@
 	 * preview, client navigation) first show as they are: cached ones appear instantly, the
 	 * others switch to the blur after CACHE_GRACE_MS and de-blur once loaded.
 	 *
+	 * An image that fails to load (missing in S3, expired link) is replaced by a "no photo"
+	 * illustration on a base-200 box of the same size, the text only shows on larger tiles.
+	 *
 	 * Photos cannot be dragged out or saved through the context menu (or the iOS long-press
 	 * menu). That only deters casual copying, downloads go through the watermarked variants.
 	 */
 	import { onMount, untrack } from 'svelte';
 	import type { ClassValue, HTMLImgAttributes } from 'svelte/elements';
-	import { initialPhase, settledPhase, sourcePhase, type BlurPhase } from '$lib/blurPhase';
+	import {
+		initialPhase,
+		loadFailed,
+		settledPhase,
+		sourcePhase,
+		type BlurPhase
+	} from '$lib/blurPhase';
+	import { m } from '$lib/paraglide/messages';
 
 	interface Props extends Omit<HTMLImgAttributes, 'class'> {
 		/** Blurhash as data URL, from lib/server/placeholder.ts */
@@ -44,6 +54,7 @@
 
 	let img = $state<HTMLImageElement>();
 	let phase = $state<BlurPhase>(initialPhase(hydrated));
+	let failed = $state(false);
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	function settle() {
@@ -55,6 +66,7 @@
 	$effect(() => {
 		void src;
 		untrack(() => {
+			failed = !!img && loadFailed(img);
 			const next = sourcePhase(phase, { changed: !first, complete: !!img?.complete });
 			first = false;
 			phase = next.phase;
@@ -87,14 +99,45 @@
 		bind:this={img}
 		{src}
 		{...rest}
-		class={[className, imageClass[phase], 'select-none [-webkit-touch-callout:none]']}
+		class={[
+			className,
+			imageClass[phase],
+			failed && 'hidden',
+			'select-none [-webkit-touch-callout:none]'
+		]}
 		draggable="false"
 		oncontextmenu={(event) => event.preventDefault()}
 		onload={settle}
-		onerror={settle}
+		onerror={() => {
+			failed = true;
+			settle();
+		}}
 		data-blur-image
 	/>
-	{#if placeholder}
+	{#if failed}
+		<!-- Takes the image's place and size, its aspect ratio keeps the masonry layout stable -->
+		<span
+			role="img"
+			aria-label={m.photoUnavailable()}
+			class={[
+				className,
+				'bg-base-200 @container flex flex-col items-center justify-center gap-3 p-4'
+			]}
+			style:aspect-ratio={rest.width && rest.height ? `${rest.width} / ${rest.height}` : undefined}
+		>
+			<img
+				src="/illustrations/photo-missing.svg"
+				alt=""
+				width="1009"
+				height="880"
+				class="h-auto max-h-2/3 w-1/2 max-w-48 object-contain"
+				draggable="false"
+			/>
+			<span class="text-base-content/60 hidden text-center text-sm @[12rem]:block">
+				{m.photoUnavailable()}
+			</span>
+		</span>
+	{:else if placeholder}
 		<span
 			aria-hidden="true"
 			class={['pointer-events-none absolute inset-0 bg-no-repeat', overlayClass[phase]]}

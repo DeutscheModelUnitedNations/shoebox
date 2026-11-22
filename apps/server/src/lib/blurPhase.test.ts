@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialPhase, settledPhase, sourcePhase } from './blurPhase';
+import { initialPhase, loadFailed, settledPhase, sourcePhase } from './blurPhase';
 
 describe('blur phases', () => {
 	it('starts server-rendered images blurred and client ones waiting', () => {
@@ -31,5 +31,11 @@ describe('blur phases', () => {
 			phase: 'blurred',
 			blurLater: false
 		});
+	});
+
+	it('treats a finished image without pixels as failed', () => {
+		expect(loadFailed({ complete: true, naturalWidth: 0 })).toBe(true);
+		expect(loadFailed({ complete: true, naturalWidth: 1600 })).toBe(false);
+		expect(loadFailed({ complete: false, naturalWidth: 0 })).toBe(false);
 	});
 });

@@ -24,3 +24,7 @@ export function sourcePhase(
 	if (complete) return { phase: settledPhase(current), blurLater: false };
 	return { phase: current, blurLater: current === 'waiting' };
 }
+
+/** A finished image without pixels failed to load (broken link, missing object in S3). */
+export const loadFailed = (img: Pick<HTMLImageElement, 'complete' | 'naturalWidth'>): boolean =>
+	img.complete && img.naturalWidth === 0;
