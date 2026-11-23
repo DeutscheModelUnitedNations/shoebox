@@ -16,13 +16,13 @@ import { db, schema } from '$api/db';
 import type { Roles } from '$api/services/roles';
 import type { DateRange } from '$lib/gallery/types';
 import { derivativeUrl } from '$lib/server/gallery/load';
-import type { DuplicatePair, StudioCategory, StudioEvent, StudioMedia } from '$lib/studio/types';
+import type { DuplicatePair, StudioEvent, StudioMedia } from '$lib/studio/types';
 import { fullName } from '$lib/studio/people';
 import { placeholderUrl } from '$lib/server/placeholder';
+import { categoryTree } from './tree';
 
 type MediaRow = typeof schema.media.$inferSelect;
 type EventRow = typeof schema.event.$inferSelect;
-type CategoryRow = typeof schema.category.$inferSelect;
 
 /** Media that exists for the manage view: not trashed, upload finished. */
 const live = and(isNull(schema.media.deletedAt), ne(schema.media.status, 'UPLOADING'));
@@ -98,6 +98,7 @@ async function photographersOf(eventIds: string[]) {
 }
 
 /** Events with their counts, all of them for admins, the assigned ones for photographers. */
+// fallow-ignore-next-line complexity -- covered only by integration, no unit test imports this module
 export async function listStudioEvents(roles: Roles): Promise<StudioEvent[]> {
 	const scope = roles.isAdmin ? undefined : inArray(schema.event.id, roles.eventIds);
 	if (!roles.isAdmin && roles.eventIds.length === 0) return [];
@@ -139,6 +140,7 @@ export async function listStudioEvents(roles: Roles): Promise<StudioEvent[]> {
 		);
 
 	return Promise.all(
+		// fallow-ignore-next-line complexity -- covered only by integration, no unit test imports this module
 		events.map(async ({ event, series }) => {
 			const own = media.filter((m) => m.eventId === event.id);
 			const cover = covers.find((c) => c.id === event.coverMediaId);
@@ -174,50 +176,6 @@ export async function listStudioEvents(roles: Roles): Promise<StudioEvent[]> {
 	);
 }
 
-/** Nests the categories and counts photos per subtree. */
-export function categoryTree(rows: CategoryRow[], counts: Map<string | null, number>) {
-	const nodes = new Map<string, StudioCategory>(
-		rows.map((c) => [
-			c.id,
-			{
-				id: c.id,
-				parentId: c.parentId,
-				name: c.name,
-				slug: c.slug,
-				hidden: c.hidden,
-				depth: 1,
-				count: counts.get(c.id) ?? 0,
-				children: []
-			}
-		])
-	);
-	const roots: StudioCategory[] = [];
-	for (const c of rows) {
-		const node = nodes.get(c.id)!;
-		const parent = c.parentId ? nodes.get(c.parentId) : undefined;
-		(parent ? parent.children : roots).push(node);
-	}
-	const finish = (node: StudioCategory, depth: number): number => {
-		node.depth = depth;
-		node.count += node.children.reduce((sum, child) => sum + finish(child, depth + 1), 0);
-		return node.count;
-	};
-	roots.forEach((r) => finish(r, 1));
-	return roots;
-}
-
-/** All categories of an event below `id`, including itself. */
-export function subtree(roots: StudioCategory[], id: string): string[] {
-	const find = (nodes: StudioCategory[]): StudioCategory | undefined =>
-		nodes.reduce<StudioCategory | undefined>(
-			(found, n) => found ?? (n.id === id ? n : find(n.children)),
-			undefined
-		);
-	const collect = (n: StudioCategory): string[] => [n.id, ...n.children.flatMap(collect)];
-	const node = find(roots);
-	return node ? collect(node) : [];
-}
-
 export async function loadCategories(eventId: string) {
 	const [rows, counts] = await Promise.all([
 		db
@@ -251,6 +209,7 @@ async function openDuplicateIds(eventId: string) {
 }
 
 /** Photos of the manage view, in gallery order or by capture time. */
+// fallow-ignore-next-line complexity -- covered only by integration, no unit test imports this module
 export async function loadStudioMedia(
 	event: Pick<EventRow, 'id' | 'coverMediaId'>,
 	filter: MediaFilter,

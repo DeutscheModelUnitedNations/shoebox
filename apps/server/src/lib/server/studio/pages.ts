@@ -6,7 +6,8 @@ import { normalizeEmail } from '$api/services/roles';
 import { flattenCategories } from '$lib/studio/categories';
 import { fullName, type PersonRole } from '$lib/studio/people';
 import type { StudioCategory } from '$lib/studio/types';
-import { loadCategories, subtree, type MediaFilter } from './load';
+import { loadCategories, type MediaFilter } from './load';
+import { subtree } from './tree';
 
 const fixedFilters: Record<string, MediaFilter> = {
 	none: { kind: 'none' },

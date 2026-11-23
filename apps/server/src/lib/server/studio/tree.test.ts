@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { schema } from '@shoebox/db';
-import { categoryTree, subtree } from './load';
+import { categoryTree, subtree } from './tree';
 
 type CategoryRow = typeof schema.category.$inferSelect;
 const now = new Date();
