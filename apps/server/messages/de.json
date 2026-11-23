@@ -186,6 +186,7 @@
 	"original": "Original",
 	"originalValue": "{width} × {height} px · {size} · {format}",
 	"photoCount": "{count} Bilder",
+	"photoUnavailable": "Bild nicht verfügbar",
 	"photographer": "Fotograf*in",
 	"previous": "Vorheriges Bild",
 	"privacy": "Datenschutz",
